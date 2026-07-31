@@ -2,11 +2,28 @@
 
 ## Status Deploy
 
-✅ **Server**: `payroll.3putraperkasa.com`  
+✅ **Server**: `payroll.3putraperkasa.com` (160.187.143.18)  
 ✅ **Repository**: `/alurelab/repositories/solution`  
 ✅ **Web Root**: `/alurelab/payroll.3putraperkasa.com`  
 ✅ **Database**: `alurelab_adms_payroll` (MySQL/MariaDB)  
 ✅ **Status**: LIVE & TESTED
+
+---
+
+## ⚠️ PENTING: URL untuk Mesin Fingerprint
+
+**Gunakan DOMAIN NAME, bukan IP:**
+```
+https://payroll.3putraperkasa.com/iclock
+```
+
+**Alasan:**
+- Server menggunakan cPanel dengan virtual host berbasis domain
+- Akses via IP (`http://160.187.143.18`) akan redirect ke default page
+- Mesin fingerprint perlu Host header yang benar untuk routing
+- Domain name sudah dikonfigurasi dengan SSL certificate
+
+**IP Server:** `160.187.143.18` (hanya untuk referensi/SSH)
 
 ---
 
@@ -109,6 +126,11 @@ Isi setting berikut:
 | **Server URL** | `https://payroll.3putraperkasa.com/iclock` |
 | **Push Interval** | `1` (detik, untuk real-time) |
 | **Heartbeat** | `60` (detik) |
+
+**⚠️ PENTING:**
+- **JANGAN gunakan IP address** (`http://160.187.143.18`) - tidak akan bekerja!
+- **WAJIB gunakan domain name** (`https://payroll.3putraperkasa.com/iclock`)
+- Server menggunakan cPanel virtual host yang membutuhkan domain name untuk routing
 
 ### Langkah 3: Test Koneksi
 Setelah save, mesin akan otomatis ping ke server. Anda bisa verify dengan:
