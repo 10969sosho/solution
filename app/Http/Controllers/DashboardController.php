@@ -51,6 +51,7 @@ class DashboardController extends Controller
             '3' => 'Break In',
             '4' => 'Overtime In',
             '5' => 'Overtime Out',
+            '255' => 'Other',
             default => 'Unknown',
         };
     }

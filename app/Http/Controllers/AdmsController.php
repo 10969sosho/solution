@@ -51,12 +51,14 @@ class AdmsController extends Controller
                 continue;
             }
 
-            $parts = preg_split('/\s+/', trim($line));
+            $parts = explode("\t", trim($line));
 
-            if (count($parts) >= 3) {
+            if (count($parts) >= 2) {
                 $userId = $parts[0];
-                $scanTime = $parts[1].' '.$parts[2];
-                $status = isset($parts[3]) ? $parts[3] : '0';
+                $scanTime = $parts[1];
+                $status = isset($parts[2]) ? $parts[2] : '0';
+                $verify = isset($parts[3]) ? $parts[3] : '0';
+                $workCode = isset($parts[4]) ? $parts[4] : '';
 
                 try {
                     AttendanceLog::create([
@@ -64,7 +66,11 @@ class AdmsController extends Controller
                         'user_id' => $userId,
                         'scan_time' => $scanTime,
                         'status' => $status,
-                        'raw_data' => ['full_line' => $line],
+                        'raw_data' => [
+                            'full_line' => $line,
+                            'verify_mode' => $verify,
+                            'work_code' => $workCode,
+                        ],
                         'ip_address' => $ip,
                     ]);
                 } catch (\Exception $e) {
