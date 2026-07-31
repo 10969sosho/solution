@@ -2,11 +2,11 @@
 
 use App\Http\Controllers\AdmsController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [DashboardController::class, 'index']);
+Route::get('/dashboard/data', [DashboardController::class, 'data']);
 
 Route::prefix('iclock')->group(function () {
     Route::match(['get', 'post'], '/cdata', [AdmsController::class, 'cdata']);
