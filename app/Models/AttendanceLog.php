@@ -20,4 +20,14 @@ class AttendanceLog extends Model
         'scan_time' => 'datetime',
         'raw_data' => 'array',
     ];
+
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class, 'user_id', 'employee_id');
+    }
+
+    public function getEmployeeNameAttribute()
+    {
+        return $this->employee ? $this->employee->name : 'Unknown';
+    }
 }

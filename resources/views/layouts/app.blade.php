@@ -43,25 +43,25 @@
 
             <!-- Navigation -->
             <nav class="flex-1 p-4 space-y-2">
-                <a href="/" class="flex items-center px-4 py-3 rounded-lg bg-blue-700 text-white shadow-lg">
+                <a href="/" class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('/') ? 'bg-blue-700 shadow-lg' : '' }}">
                     <i class="fas fa-tachometer-alt w-5"></i>
                     <span class="ml-3">Dashboard</span>
                 </a>
-                <a href="/attendance/latest" class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors">
-                    <i class="fas fa-table w-5"></i>
-                    <span class="ml-3">Data Absensi</span>
-                </a>
-                <a href="/machines" class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors">
-                    <i class="fas fa-server w-5"></i>
-                    <span class="ml-3">Mesin</span>
-                </a>
-                <a href="/users" class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                <a href="/employees" class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('employees*') ? 'bg-blue-700 shadow-lg' : '' }}">
                     <i class="fas fa-users w-5"></i>
                     <span class="ml-3">Karyawan</span>
                 </a>
-                <a href="/reports" class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                <a href="/reports/monthly" class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('reports*') ? 'bg-blue-700 shadow-lg' : '' }}">
                     <i class="fas fa-chart-bar w-5"></i>
-                    <span class="ml-3">Laporan</span>
+                    <span class="ml-3">Laporan Bulanan</span>
+                </a>
+                <a href="/reports/summary" class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('reports/summary') ? 'bg-blue-700 shadow-lg' : '' }}">
+                    <i class="fas fa-file-alt w-5"></i>
+                    <span class="ml-3">Rekap Bulanan</span>
+                </a>
+                <a href="/settings" class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('settings*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                    <i class="fas fa-cog w-5"></i>
+                    <span class="ml-3">Setting Jam Kerja</span>
                 </a>
             </nav>
 

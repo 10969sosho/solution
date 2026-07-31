@@ -104,13 +104,13 @@
                 <thead class="bg-gray-50 border-b border-gray-200">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            <i class="fas fa-user mr-2"></i>User ID
+                            <i class="fas fa-user mr-2"></i>Karyawan
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             <i class="fas fa-clock mr-2"></i>Waktu Scan
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            <i class="fas fa-server mr-2"></i>Mesin
+                            <i class="fas fa-building mr-2"></i>Departemen
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             <i class="fas fa-info-circle mr-2"></i>Status
@@ -144,12 +144,15 @@
                                     <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
                                         <i class="fas fa-user text-blue-600 text-sm"></i>
                                     </div>
-                                    <span class="font-medium text-gray-800" x-text="log.user_id"></span>
+                                    <div>
+                                        <div class="font-medium text-gray-800" x-text="log.employee_name"></div>
+                                        <div class="text-xs text-gray-500">ID: <span x-text="log.user_id"></span></div>
+                                    </div>
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-gray-700" x-text="log.scan_time"></td>
                             <td class="px-6 py-4">
-                                <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-mono" x-text="log.machine_sn"></span>
+                                <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm" x-text="log.department"></span>
                             </td>
                             <td class="px-6 py-4">
                                 <span class="px-3 py-1 rounded-full text-xs font-medium"
