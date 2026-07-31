@@ -21,21 +21,20 @@ class DashboardController extends Controller
 
     public function data(Request $request)
     {
-        $query = AttendanceLog::with('machine')
-            ->latest('scan_time')
-            ->limit(100);
-
-        $logs = $query->get()->map(function ($log) {
-            return [
-                'id' => $log->id,
-                'user_id' => $log->user_id,
-                'scan_time' => $log->scan_time->format('d/m/Y H:i:s'),
-                'machine_sn' => $log->machine_sn,
-                'status' => $log->status,
-                'status_label' => $this->getStatus($log->status),
-                'created_at' => $log->created_at->diffForHumans(),
-            ];
-        });
+        $logs = AttendanceLog::latest('scan_time')
+            ->limit(100)
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'id' => $log->id,
+                    'user_id' => $log->user_id,
+                    'scan_time' => $log->scan_time->format('d/m/Y H:i:s'),
+                    'machine_sn' => $log->machine_sn,
+                    'status' => $log->status,
+                    'status_label' => $this->getStatus($log->status),
+                    'created_at' => $log->created_at->diffForHumans(),
+                ];
+            });
 
         return response()->json([
             'status' => 'success',
