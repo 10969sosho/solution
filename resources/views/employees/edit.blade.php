@@ -45,17 +45,11 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">No. Telepon</label>
-                    <input type="text" name="phone" value="{{ old('phone', $employee->phone) }}"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" name="email" value="{{ old('email', $employee->email) }}"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Lokasi</label>
+                <input type="text" name="location" value="{{ old('location', $employee->location) }}"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Contoh: Gudang">
             </div>
 
             <div>
@@ -71,6 +65,19 @@
                     <option value="inactive" {{ $employee->status === 'inactive' ? 'selected' : '' }}>Nonaktif</option>
                     <option value="resigned" {{ $employee->status === 'resigned' ? 'selected' : '' }}>Resign</option>
                 </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Gaji Pokok</label>
+                    <input type="number" name="salary" value="{{ old('salary', $employee->salary) }}" step="0.01" min="0"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tier Gaji</label>
+                    <input type="text" name="salary_tier" value="{{ old('salary_tier', $employee->salary_tier) }}"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
             </div>
 
             <div>

@@ -2,13 +2,13 @@
 
 @section('title', 'Laporan Bulanan - ADMS')
 @section('page-title', 'Laporan Bulanan')
-@section('page-subtitle', 'Laporan absensi bulanan per karyawan')
+@section('page-subtitle', 'Laporan absensi rinci per karyawan')
 
 @section('content')
 <div class="space-y-6">
     <!-- Filter -->
     <div class="bg-white rounded-xl shadow-sm p-6">
-        <form method="GET" action="{{ route('reports.monthly') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <form method="GET" action="{{ route('reports.monthly') }}" class="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
                 <select name="year" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
@@ -25,6 +25,24 @@
                         {{ \Carbon\Carbon::create()->month($m)->format('F') }}
                     </option>
                     @endfor
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Lokasi</label>
+                <select name="location" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="">-- Semua --</option>
+                    @foreach($employees->pluck('location')->filter()->unique()->sort() as $loc)
+                    <option value="{{ $loc }}" {{ $location == $loc ? 'selected' : '' }}>{{ $loc }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Jabatan</label>
+                <select name="position" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="">-- Semua --</option>
+                    @foreach($employees->pluck('position')->filter()->unique()->sort() as $pos)
+                    <option value="{{ $pos }}" {{ $position == $pos ? 'selected' : '' }}>{{ $pos }}</option>
+                    @endforeach
                 </select>
             </div>
             <div>
@@ -50,23 +68,26 @@
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
-            <p class="text-sm text-gray-500 mb-1">Total Hari Kerja</p>
-            <p class="text-3xl font-bold text-gray-800">{{ $report['total_days'] }}</p>
-            <p class="text-xs text-gray-400 mt-2">hari</p>
+            <p class="text-sm text-gray-500 mb-1">Hari Hadir</p>
+            <p class="text-3xl font-bold text-gray-800">{{ $report['days_present'] }}</p>
+            <p class="text-xs text-gray-400 mt-2">dari {{ $report['total_days'] }} hari</p>
         </div>
         <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
             <p class="text-sm text-gray-500 mb-1">Total Jam Kerja</p>
-            <p class="text-3xl font-bold text-gray-800">{{ $report['total_hours'] }}</p>
-            <p class="text-xs text-gray-400 mt-2">jam</p>
+            <p class="text-3xl font-bold text-gray-800">
+                {{ intdiv($report['total_work_minutes'], 60) }}<span class="text-lg">j</span>
+                {{ $report['total_work_minutes'] % 60 }}<span class="text-lg">m</span>
+            </p>
+            <p class="text-xs text-gray-400 mt-2">akumulasi</p>
         </div>
         <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-yellow-500">
-            <p class="text-sm text-gray-500 mb-1">Total Telat</p>
-            <p class="text-3xl font-bold text-gray-800">{{ $report['total_late_minutes'] }}</p>
-            <p class="text-xs text-gray-400 mt-2">menit ({{ $report['days_late'] }} hari)</p>
+            <p class="text-sm text-gray-500 mb-1">Total Terlambat</p>
+            <p class="text-3xl font-bold text-gray-800">{{ $report['total_late_minutes'] }}<span class="text-lg">mnt</span></p>
+            <p class="text-xs text-gray-400 mt-2">{{ $report['days_late'] }} hari telat</p>
         </div>
-        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
-            <p class="text-sm text-gray-500 mb-1">Total Lembur</p>
-            <p class="text-3xl font-bold text-gray-800">{{ $report['total_overtime_minutes'] }}</p>
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-orange-500">
+            <p class="text-sm text-gray-500 mb-1">Total Pulang Cepat</p>
+            <p class="text-3xl font-bold text-gray-800">{{ $report['total_early_leave_minutes'] }}<span class="text-lg">mnt</span></p>
             <p class="text-xs text-gray-400 mt-2">menit</p>
         </div>
     </div>
@@ -76,12 +97,13 @@
         <div class="px-6 py-4 border-b border-gray-200">
             <h3 class="text-lg font-semibold text-gray-800">
                 <i class="fas fa-calendar-alt text-blue-600 mr-2"></i>
-                Detail Absensi - {{ $selectedEmployee->name }}
+                Rincian Absensi - {{ $selectedEmployee->name }}
             </h3>
             <p class="text-sm text-gray-500 mt-1">
                 Periode: {{ \Carbon\Carbon::create($year, $month, 1)->format('F Y') }}
-                | Jam Masuk: {{ $workSetting->check_in_time }}
-                | Jam Keluar: {{ $workSetting->check_out_time }}
+                | Masuk: {{ substr($report['schedule']['check_in_time'], 0, 5) }}
+                | Istirahat: {{ substr($report['schedule']['break_out_time'], 0, 5) }} - {{ substr($report['schedule']['break_in_time'], 0, 5) }}
+                | Pulang: {{ substr($report['schedule']['check_out_time'], 0, 5) }}
             </p>
         </div>
 
@@ -89,33 +111,51 @@
             <table class="w-full">
                 <thead class="bg-gray-50 border-b border-gray-200">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jam Masuk</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jam Keluar</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jam Kerja</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telat</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lembur</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Masuk</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Keluar Istirahat</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Masuk Istirahat</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Pulang</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Jam Kerja</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Terlambat</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Pulang Cepat</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @forelse($report['daily_details'] as $detail)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 text-sm font-medium text-gray-800">
-                            {{ \Carbon\Carbon::parse($detail['date'])->format('d M Y (D)') }}
+                    <tr class="hover:bg-gray-50 {{ $detail['is_weekend'] ? 'bg-gray-50' : '' }}">
+                        <td class="px-4 py-3 text-sm font-medium text-gray-800">
+                            {{ \Carbon\Carbon::parse($detail['date'])->format('d M (D)') }}
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-700">{{ $detail['check_in'] }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-700">{{ $detail['check_out'] }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-700">{{ $detail['work_hours'] }} jam</td>
-                        <td class="px-6 py-4">
+                        <td class="px-4 py-3 text-center text-sm text-gray-700">
+                            {{ isset($detail['check_locks']['check_in']) ? $detail['check_locks']['check_in']['scan_time']->format('H:i') : '-' }}
+                        </td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-700">
+                            {{ isset($detail['check_locks']['break_out']) ? $detail['check_locks']['break_out']['scan_time']->format('H:i') : '-' }}
+                        </td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-700">
+                            {{ isset($detail['check_locks']['break_in']) ? $detail['check_locks']['break_in']['scan_time']->format('H:i') : '-' }}
+                        </td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-700">
+                            {{ isset($detail['check_locks']['check_out']) ? $detail['check_locks']['check_out']['scan_time']->format('H:i') : '-' }}
+                        </td>
+                        <td class="px-4 py-3 text-center text-sm font-medium text-gray-800">
+                            @if($detail['present'])
+                            {{ intdiv($detail['total_work_minutes'], 60) }}j {{ $detail['total_work_minutes'] % 60 }}m
+                            @else
+                            <span class="text-red-500">Tidak hadir</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 text-center">
                             @if($detail['late_minutes'] > 0)
-                            <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">{{ $detail['late_minutes'] }} menit</span>
+                            <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">{{ $detail['late_minutes'] }} mnt</span>
                             @else
                             <span class="text-gray-400">-</span>
                             @endif
                         </td>
-                        <td class="px-6 py-4">
-                            @if($detail['overtime_minutes'] > 0)
-                            <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">{{ $detail['overtime_minutes'] }} menit</span>
+                        <td class="px-4 py-3 text-center">
+                            @if($detail['early_leave_minutes'] > 0)
+                            <span class="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">{{ $detail['early_leave_minutes'] }} mnt</span>
                             @else
                             <span class="text-gray-400">-</span>
                             @endif
@@ -123,7 +163,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-12 text-center">
+                        <td colspan="8" class="px-6 py-12 text-center">
                             <i class="fas fa-calendar-times text-4xl text-gray-300 mb-3"></i>
                             <p class="text-gray-500">Tidak ada data absensi untuk periode ini</p>
                         </td>
@@ -136,7 +176,7 @@
     @else
     <div class="bg-white rounded-xl shadow-sm p-12 text-center">
         <i class="fas fa-chart-bar text-6xl text-gray-300 mb-4"></i>
-        <p class="text-gray-500 text-lg">Pilih karyawan untuk melihat laporan bulanan</p>
+        <p class="text-gray-500 text-lg">Pilih karyawan untuk melihat laporan rincian</p>
     </div>
     @endif
 </div>

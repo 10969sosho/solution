@@ -3,30 +3,43 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
-use App\Models\AttendanceLog;
 use App\Models\WorkSetting;
+use App\Services\AttendanceProcessingService;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class ReportController extends Controller
 {
+    public function __construct(private AttendanceProcessingService $attendanceService)
+    {
+    }
+
     public function monthly(Request $request)
     {
-        $year = $request->input('year', now()->year);
-        $month = $request->input('month', now()->month);
+        $year = (int) $request->input('year', now()->year);
+        $month = (int) $request->input('month', now()->month);
         $employeeId = $request->input('employee_id');
+        $location = $request->input('location');
+        $position = $request->input('position');
 
-        $employees = Employee::where('status', 'active')->orderBy('name')->get();
-        
+        $employees = Employee::query()
+            ->where('status', 'active')
+            ->when($location, fn ($q) => $q->where('location', $location))
+            ->when($position, fn ($q) => $q->where('position', $position))
+            ->orderBy('name')
+            ->get();
+
+        $selectedEmployee = null;
+        $report = null;
+
         if ($employeeId) {
-            $selectedEmployee = Employee::where('employee_id', $employeeId)->first();
-            $report = $selectedEmployee ? $selectedEmployee->getMonthlyReport($year, $month) : null;
-        } else {
-            $selectedEmployee = null;
-            $report = null;
+            $selectedEmployee = $employees->firstWhere('employee_id', $employeeId)
+                ?? Employee::where('employee_id', $employeeId)->first();
+            if ($selectedEmployee) {
+                $report = $this->attendanceService->processMonth($selectedEmployee, $year, $month);
+            }
         }
 
-        $workSetting = WorkSetting::where('is_active', true)->first();
+        $workSetting = WorkSetting::getActive();
 
         return view('reports.monthly', compact(
             'employees',
@@ -34,35 +47,47 @@ class ReportController extends Controller
             'report',
             'year',
             'month',
+            'location',
+            'position',
             'workSetting'
         ));
     }
 
     public function summary(Request $request)
     {
-        $year = $request->input('year', now()->year);
-        $month = $request->input('month', now()->month);
+        $year = (int) $request->input('year', now()->year);
+        $month = (int) $request->input('month', now()->month);
+        $location = $request->input('location');
+        $position = $request->input('position');
 
-        $employees = Employee::where('status', 'active')->orderBy('name')->get();
-        $workSetting = WorkSetting::where('is_active', true)->first();
+        $employees = Employee::query()
+            ->where('status', 'active')
+            ->when($location, fn ($q) => $q->where('location', $location))
+            ->when($position, fn ($q) => $q->where('position', $position))
+            ->orderBy('name')
+            ->get();
+
+        $workSetting = WorkSetting::getActive();
 
         $summary = [];
 
         foreach ($employees as $employee) {
-            $report = $employee->getMonthlyReport($year, $month);
-            
+            $report = $this->attendanceService->processMonth($employee, $year, $month);
+
             $summary[] = [
                 'employee_id' => $employee->employee_id,
                 'name' => $employee->name,
                 'department' => $employee->department,
-                'total_days' => $report['total_days'],
-                'total_hours' => $report['total_hours'],
+                'location' => $employee->location,
+                'position' => $employee->position,
+                'days_present' => $report['days_present'],
+                'total_work_minutes' => $report['total_work_minutes'],
                 'total_late_minutes' => $report['total_late_minutes'],
-                'total_overtime_minutes' => $report['total_overtime_minutes'],
                 'days_late' => $report['days_late'],
+                'total_early_leave_minutes' => $report['total_early_leave_minutes'],
             ];
         }
 
-        return view('reports.summary', compact('summary', 'year', 'month', 'workSetting'));
+        return view('reports.summary', compact('summary', 'year', 'month', 'location', 'position', 'workSetting'));
     }
 }

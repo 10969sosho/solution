@@ -4,26 +4,28 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class WorkSetting extends Model
+class EmployeeSchedule extends Model
 {
     protected $fillable = [
+        'employee_id',
         'name',
         'check_in_time',
-        'check_out_time',
         'break_out_time',
         'break_in_time',
+        'check_out_time',
         'late_tolerance_minutes',
-        'overtime_threshold_minutes',
+        'effective_from',
         'is_active',
         'description',
     ];
 
     protected $casts = [
+        'effective_from' => 'date',
         'is_active' => 'boolean',
     ];
 
-    public static function getActive()
+    public function employee()
     {
-        return static::where('is_active', true)->first();
+        return $this->belongsTo(Employee::class);
     }
 }

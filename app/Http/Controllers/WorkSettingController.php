@@ -24,6 +24,8 @@ class WorkSettingController extends Controller
             'name' => 'required|string|max:255',
             'check_in_time' => 'required|date_format:H:i',
             'check_out_time' => 'required|date_format:H:i|after:check_in_time',
+            'break_out_time' => 'required|date_format:H:i',
+            'break_in_time' => 'required|date_format:H:i|after:break_out_time',
             'late_tolerance_minutes' => 'required|integer|min:0|max:120',
             'overtime_threshold_minutes' => 'required|integer|min:0|max:240',
             'is_active' => 'boolean',

@@ -25,10 +25,13 @@ class EmployeeController extends Controller
             'name' => 'required|string|max:255',
             'position' => 'nullable|string|max:255',
             'department' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
             'join_date' => 'nullable|date',
             'status' => 'required|in:active,inactive,resigned',
+            'salary' => 'nullable|numeric|min:0',
+            'salary_tier' => 'nullable|string|max:50',
             'address' => 'nullable|string',
         ]);
 
@@ -49,10 +52,13 @@ class EmployeeController extends Controller
             'name' => 'required|string|max:255',
             'position' => 'nullable|string|max:255',
             'department' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
             'join_date' => 'nullable|date',
             'status' => 'required|in:active,inactive,resigned',
+            'salary' => 'nullable|numeric|min:0',
+            'salary_tier' => 'nullable|string|max:50',
             'address' => 'nullable|string',
         ]);
 

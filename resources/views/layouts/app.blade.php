@@ -51,6 +51,14 @@
                     <i class="fas fa-users w-5"></i>
                     <span class="ml-3">Karyawan</span>
                 </a>
+                <a href="/schedules" class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('schedules*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                    <i class="fas fa-clock w-5"></i>
+                    <span class="ml-3">Jam Kerja Khusus</span>
+                </a>
+                <a href="/seasonal" class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('seasonal*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                    <i class="fas fa-calendar-alt w-5"></i>
+                    <span class="ml-3">Jam Kerja Musiman</span>
+                </a>
                 <a href="/reports/monthly" class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('reports*') ? 'bg-blue-700 shadow-lg' : '' }}">
                     <i class="fas fa-chart-bar w-5"></i>
                     <span class="ml-3">Laporan Bulanan</span>
