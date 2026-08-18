@@ -21,7 +21,23 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    public function isAdminOperasional(): bool
+    {
+        return $this->role === 'admin_operasional';
+    }
+
+    public function canManagePayroll(): bool
+    {
+        return $this->isSuperAdmin();
+    }
 
     /**
      * The attributes that should be hidden for serialization.

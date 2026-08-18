@@ -23,6 +23,7 @@ class ReportController extends Controller
 
         $employees = Employee::query()
             ->where('status', 'active')
+            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
             ->when($location, fn ($q) => $q->where('location', $location))
             ->when($position, fn ($q) => $q->where('position', $position))
             ->orderBy('name')
@@ -34,6 +35,10 @@ class ReportController extends Controller
         if ($employeeId) {
             $selectedEmployee = $employees->firstWhere('employee_id', $employeeId)
                 ?? Employee::where('employee_id', $employeeId)->first();
+            if ($selectedEmployee && ! auth()->user()->isSuperAdmin()
+                && ! in_array($selectedEmployee->position, config('hrms.operational_positions', []), true)) {
+                abort(403, 'Anda tidak memiliki akses ke laporan karyawan non-operasional.');
+            }
             if ($selectedEmployee) {
                 $report = $this->attendanceService->processMonth($selectedEmployee, $year, $month);
             }
@@ -62,6 +67,7 @@ class ReportController extends Controller
 
         $employees = Employee::query()
             ->where('status', 'active')
+            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
             ->when($location, fn ($q) => $q->where('location', $location))
             ->when($position, fn ($q) => $q->where('position', $position))
             ->orderBy('name')

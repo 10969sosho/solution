@@ -4,12 +4,23 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Employee;
+use App\Models\User;
 use App\Models\WorkSetting;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // Default akun Super Admin / Owner
+        User::firstOrCreate(
+            ['email' => 'admin@adms.test'],
+            [
+                'name' => 'Owner',
+                'password' => bcrypt('password'),
+                'role' => 'super_admin',
+            ]
+        );
+
         // Seed work settings
         WorkSetting::create([
             'name' => 'Default',

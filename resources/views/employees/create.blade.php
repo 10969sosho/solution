@@ -85,6 +85,7 @@
                 </select>
             </div>
 
+            @if(auth()->user()?->isSuperAdmin())
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Gaji Pokok</label>
@@ -99,6 +100,7 @@
                         placeholder="Contoh: A / B / C">
                 </div>
             </div>
+            @endif
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Alamat</label>

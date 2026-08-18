@@ -14,6 +14,8 @@ class ReportTest extends TestCase
     {
         parent::setUp();
 
+        $this->loginAsSuperAdmin();
+
         WorkSetting::create([
             'name' => 'Default',
             'check_in_time' => '08:00:00',

@@ -70,17 +70,32 @@ Setiap hari diproses menjadi 4 check-lock:
 ## 6. Skema Penggajian (Payroll)
 
 ### 6.1 Komponen Pemotongan Gaji (Deductions)
-- Cicilan Pinjaman / Bon.
-- Denda akumulasi keterlambatan.
-- Pemotongan hari libur / ketidakhadiran.
+- **Cicilan Pinjaman / Bon**: total pembayaran pinjaman karyawan pada periode tersebut (dari tabel `loan_payments`).
+- **Denda akumulasi keterlambatan** (per menit, bertingkat):
+  - 0–30 menit → Rp 1.000/menit.
+  - 31–60 menit → Rp 1.500/menit.
+  - > 60 menit → Rp 2.000/menit.
+- **Pemotongan hari libur / ketidakhadiran**: hari kerja (bukan akhir pekan) tanpa absen × (gaji pokok / 22 hari kerja).
+- Payroll dihitung **otomatis** dari data absensi, izin, dan pinjaman.
+- Payroll berstatus **paid** tidak dapat digenerate ulang / diubah.
 
 ### 6.2 Bonus Kehadiran (Incentives)
-- Bonus tambahan jika karyawan **tidak mengambil hak jatah liburnya**.
-- Nominal menyesuaikan **tier gaji**.
+- Bonus tambahan jika karyawan **tidak mengambil hak jatah liburnya** (tidak ada izin berstatus approved pada bulan tersebut).
+- Nominal menyesuaikan **tier gaji**: Tier A Rp 300.000, Tier B Rp 200.000, Tier C Rp 100.000, selain itu Rp 150.000.
+
+### 6.3 Tunjangan Hari Raya (THR)
+- **Masa kerja ≥ 5 tahun (60 bulan)**: THR penuh = 1× gaji pokok.
+- **Masa kerja < 5 tahun**: THR proporsional = (bulan kerja pada tahun berjalan / 12) × gaji pokok (maksimal 1× gaji pokok).
+- `join_date` karyawan menjadi dasar penghitungan masa kerja.
 
 ## 7. Hak Akses (User Roles)
 
+- Autentikasi: seluruh halaman admin memerlukan **login** (`/login`).
+- Role disimpan di kolom `users.role`.
+
 | Role | Hak Akses |
 | :--- | :--- |
-| **Super Admin / Owner** | Full access ke seluruh menu, data karyawan, laporan, dan konfigurasi. |
-| **Admin Operasional** | Melihat/mengedit data & gaji karyawan tingkat operasional (Gudang, Kandang, dll). **TIDAK DAPAT** mengakses rekam gaji & laporan milik Admin dan Mandor. |
+| **Super Admin / Owner** | Full access ke seluruh menu, data karyawan (termasuk gaji & tier), laporan, payroll, THR, dan konfigurasi. |
+| **Admin Operasional** | Hanya melihat/mengelola karyawan **operasional (Gudang/Kandang)**. **TIDAK DAPAT**: mengakses Payroll/THR (403), melihat/mengisi gaji pokok & tier gaji (field disembunyikan & diabaikan), mengelola/meihat karyawan non-operasional (Admin/Mandor) dan laporannya. |
+
+- Default akun seeder (Super Admin): `admin@adms.test` / `password`.

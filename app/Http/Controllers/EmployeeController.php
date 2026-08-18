@@ -9,7 +9,11 @@ class EmployeeController extends Controller
 {
     public function index()
     {
-        $employees = Employee::orderBy('employee_id')->get();
+        $employees = Employee::query()
+            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $this->operationalScope($q))
+            ->orderBy('employee_id')
+            ->get();
+
         return view('employees.index', compact('employees'));
     }
 
@@ -35,6 +39,11 @@ class EmployeeController extends Controller
             'address' => 'nullable|string',
         ]);
 
+        if (! auth()->user()->isSuperAdmin()) {
+            $this->ensureOperationalPosition($validated);
+            unset($validated['salary'], $validated['salary_tier']);
+        }
+
         Employee::create($validated);
 
         return redirect()->route('employees.index')->with('success', 'Karyawan berhasil ditambahkan');
@@ -42,11 +51,15 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee)
     {
+        $this->authorizeEmployee($employee);
+
         return view('employees.edit', compact('employee'));
     }
 
     public function update(Request $request, Employee $employee)
     {
+        $this->authorizeEmployee($employee);
+
         $validated = $request->validate([
             'employee_id' => 'required|unique:employees,employee_id,' . $employee->id,
             'name' => 'required|string|max:255',
@@ -62,6 +75,11 @@ class EmployeeController extends Controller
             'address' => 'nullable|string',
         ]);
 
+        if (! auth()->user()->isSuperAdmin()) {
+            $this->ensureOperationalPosition($validated);
+            unset($validated['salary'], $validated['salary_tier']);
+        }
+
         $employee->update($validated);
 
         return redirect()->route('employees.index')->with('success', 'Karyawan berhasil diupdate');
@@ -69,7 +87,32 @@ class EmployeeController extends Controller
 
     public function destroy(Employee $employee)
     {
+        $this->authorizeEmployee($employee);
+
         $employee->delete();
+
         return redirect()->route('employees.index')->with('success', 'Karyawan berhasil dihapus');
+    }
+
+    private function operationalScope($query)
+    {
+        return $query->whereIn('position', config('hrms.operational_positions', []));
+    }
+
+    private function authorizeEmployee(Employee $employee): void
+    {
+        if (! auth()->user()->isSuperAdmin()
+            && ! in_array($employee->position, config('hrms.operational_positions', []), true)) {
+            abort(403, 'Anda tidak memiliki akses ke karyawan non-operasional.');
+        }
+    }
+
+    private function ensureOperationalPosition(array &$validated): void
+    {
+        $position = $validated['position'] ?? null;
+
+        if (! in_array($position, config('hrms.operational_positions', []), true)) {
+            abort(403, 'Admin operasional hanya dapat mengelola karyawan Gudang/Kandang.');
+        }
     }
 }

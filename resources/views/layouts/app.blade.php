@@ -67,6 +67,20 @@
                     <i class="fas fa-file-alt w-5"></i>
                     <span class="ml-3">Rekap Bulanan</span>
                 </a>
+                <a href="/permits" class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('permits*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                    <i class="fas fa-file-contract w-5"></i>
+                    <span class="ml-3">Manajemen Izin</span>
+                </a>
+                <a href="/loans" class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('loans*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                    <i class="fas fa-hand-holding-usd w-5"></i>
+                    <span class="ml-3">Pinjaman / Kasbon</span>
+                </a>
+                @if(auth()->user()?->canManagePayroll())
+                <a href="/payrolls" class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('payrolls*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                    <i class="fas fa-money-check-alt w-5"></i>
+                    <span class="ml-3">Payroll</span>
+                </a>
+                @endif
                 <a href="/settings" class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('settings*') ? 'bg-blue-700 shadow-lg' : '' }}">
                     <i class="fas fa-cog w-5"></i>
                     <span class="ml-3">Setting Jam Kerja</span>
@@ -80,10 +94,19 @@
                         <i class="fas fa-user text-sm"></i>
                     </div>
                     <div class="flex-1">
-                        <p class="text-sm font-medium">Admin</p>
-                        <p class="text-xs text-blue-200">Administrator</p>
+                        <p class="text-sm font-medium">{{ auth()->user()->name ?? 'Admin' }}</p>
+                        <p class="text-xs text-blue-200">
+                            {{ auth()->user()?->isAdminOperasional() ? 'Admin Operasional' : 'Super Admin' }}
+                        </p>
                     </div>
                 </div>
+                <form method="POST" action="{{ route('logout') }}" class="px-4">
+                    @csrf
+                    <button type="submit" class="w-full mt-2 flex items-center px-4 py-2 bg-blue-700/50 text-blue-100 rounded-lg hover:bg-red-600 transition-colors text-sm">
+                        <i class="fas fa-sign-out-alt w-5"></i>
+                        <span class="ml-3">Keluar</span>
+                    </button>
+                </form>
             </div>
         </aside>
 

@@ -36,6 +36,16 @@ class Employee extends Model
         return $this->hasMany(EmployeeSchedule::class);
     }
 
+    public function permits()
+    {
+        return $this->hasMany(Permit::class);
+    }
+
+    public function loans()
+    {
+        return $this->hasMany(Loan::class);
+    }
+
     public function activeSchedule()
     {
         return $this->hasOne(EmployeeSchedule::class)->where('is_active', true)->latest('effective_from');

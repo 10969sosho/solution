@@ -67,6 +67,7 @@
                 </select>
             </div>
 
+            @if(auth()->user()?->isSuperAdmin())
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Gaji Pokok</label>
@@ -79,6 +80,7 @@
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
             </div>
+            @endif
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
