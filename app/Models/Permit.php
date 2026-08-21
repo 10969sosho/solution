@@ -12,6 +12,8 @@ class Permit extends Model
 
     protected $fillable = [
         'employee_id',
+        'location',
+        'position',
         'permit_date',
         'type',
         'start_time',
@@ -19,6 +21,9 @@ class Permit extends Model
         'duration_minutes',
         'reason',
         'status',
+        'deduction_type',
+        'deduction_hours',
+        'deduction_minutes',
     ];
 
     protected $casts = [

@@ -12,6 +12,11 @@ class Employee extends Model
         'position',
         'department',
         'location',
+        'golongan_id',
+        'jabatan_id',
+        'lokasi_id',
+        'tanggal_keluar',
+        'jam_masuk_normal',
         'phone',
         'email',
         'join_date',
@@ -24,6 +29,8 @@ class Employee extends Model
     protected $casts = [
         'join_date' => 'date',
         'salary' => 'decimal:2',
+        'tanggal_keluar' => 'date',
+        'jam_masuk_normal' => 'string',
     ];
 
     public function attendanceLogs()
@@ -49,5 +56,20 @@ class Employee extends Model
     public function activeSchedule()
     {
         return $this->hasOne(EmployeeSchedule::class)->where('is_active', true)->latest('effective_from');
+    }
+
+    public function golongan()
+    {
+        return $this->belongsTo(Golongan::class);
+    }
+
+    public function jabatan()
+    {
+        return $this->belongsTo(Jabatan::class);
+    }
+
+    public function lokasi()
+    {
+        return $this->belongsTo(Lokasi::class);
     }
 }

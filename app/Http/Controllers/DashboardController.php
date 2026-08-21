@@ -12,8 +12,8 @@ class DashboardController extends Controller
     {
         $stats = [
             'total_today' => AttendanceLog::whereDate('scan_time', today())->count(),
-            'total_machines' => AttendanceLog::distinct('machine_sn')->count('machine_sn'),
-            'total_users' => AttendanceLog::distinct('user_id')->count('user_id'),
+            'total_machines' => AttendanceLog::whereDate('scan_time', today())->distinct('machine_sn')->count('machine_sn'),
+            'total_employees' => Employee::where('status', 'active')->count(),
             'latest_scan' => AttendanceLog::latest('scan_time')->first(),
         ];
 

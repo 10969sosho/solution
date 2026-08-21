@@ -40,11 +40,16 @@ class PermitController extends Controller
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'reason' => 'required|string|max:500',
+            'location' => 'nullable|string|max:255',
+            'position' => 'nullable|string|max:255',
+            'deduction_type' => 'required|in:no_deduction,salary_deduction',
+            'deduction_hours' => 'nullable|integer|min:0',
+            'deduction_minutes' => 'nullable|integer|min:0',
         ]);
 
         $duration = $this->durationInMinutes($validated['start_time'], $validated['end_time']);
         $validated['duration_minutes'] = $duration;
-        $validated['type'] = $this->determineType($duration);
+        $validated['type'] = $this->determineType($duration, $validated['deduction_type']);
         $validated['status'] = 'approved';
 
         Permit::create($validated);
@@ -75,8 +80,11 @@ class PermitController extends Controller
      * - > 30 menit  : potong gaji (durasi lama)
      * - 15-30 menit : tanpa potongan (batas aman)
      */
-    private function determineType(int $durationMinutes): string
+    private function determineType(int $durationMinutes, string $deductionType): string
     {
+        if ($deductionType === 'salary_deduction') {
+            return Permit::TYPE_SALARY_DEDUCTION;
+        }
         return $durationMinutes > 30
             ? Permit::TYPE_SALARY_DEDUCTION
             : Permit::TYPE_NO_DEDUCTION;

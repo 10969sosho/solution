@@ -30,7 +30,52 @@ class LoanController extends Controller
     public function create()
     {
         $employees = Employee::where('status', 'active')->orderBy('name')->get();
-        return view('loans.create', compact('employees'));
+        
+        // Calculate totals for each employee
+        $employeesWithTotals = $employees->map(function ($employee) {
+            $previousLoansTotal = $employee->loans()->where('status', '!=' , 'paid')
+                ->sum('principal');
+            $allLoansTotal = $employee->loans()->sum('principal');
+            
+            return (object) [
+                'employee' => $employee,
+                'previous_loans_total' => $previousLoansTotal,
+                'all_loans_total' => $allLoansTotal,
+            ];
+        });
+
+        return view('loans.create', compact('employeesWithTotals'));
+    }
+
+    public function paymentCreate(Loan $loan)
+    {
+        return view('loan-payments.create', compact('loan'));
+    }
+
+    public function paymentStore(Request $request, Loan $loan)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'position' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:255',
+            'previous_balance' => 'required|numeric|min:0',
+            'payment_date' => 'required|date',
+            'amount' => 'required|numeric|min:0.01',
+            'remaining_after' => 'nullable|numeric|min:0',
+        ]);
+
+        LoanPayment::create($validated);
+
+        // Update loan remaining balance
+        $newRemaining = max(0, (float) $loan->principal - ((float) $loan->total_paid + (float) $validated['amount']));
+        $loan->update(['principal' => (float) $loan->principal]); // keep original principal
+
+        // Check if fully paid
+        if ($newRemaining <= 0) {
+            $loan->update(['status' => 'paid']);
+        }
+
+        return redirect()->route('loans.show', $loan)->with('success', 'Pembayaran berhasil dicatat');
     }
 
     public function store(Request $request)
@@ -40,6 +85,8 @@ class LoanController extends Controller
             'loan_date' => 'required|date',
             'principal' => 'required|numeric|min:0.01',
             'description' => 'nullable|string|max:255',
+            'previous_loans_total' => 'nullable|numeric|min:0',
+            'all_loans_total' => 'nullable|numeric|min:0',
         ]);
 
         $validated['status'] = 'active';

@@ -12,6 +12,8 @@ class Loan extends Model
         'principal',
         'description',
         'status',
+        'previous_loans_total',
+        'all_loans_total',
     ];
 
     protected $casts = [

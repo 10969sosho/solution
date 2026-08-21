@@ -44,7 +44,7 @@
             <!-- Navigation -->
             <nav class="flex-1 overflow-y-auto p-4 space-y-2" x-data="{
                 openGroups: {
-                    master: @js(request()->is('employees*')),
+                    master: @js(request()->is(['employees*', 'golongans*', 'jabatans*', 'lokasis*'])),
                     attendance: @js(request()->is(['schedules*', 'seasonal*', 'settings*'])),
                     reports: @js(request()->is('reports*')),
                     hr: @js(request()->is(['permits*', 'loans*', 'payrolls*']))
@@ -65,6 +65,15 @@
                     <div x-cloak x-show="openGroups.master" x-transition class="mt-1 space-y-1">
                         <a href="/employees" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('employees*') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-users w-5"></i><span class="ml-3">Karyawan</span>
+                        </a>
+                        <a href="/golongans" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('golongans*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-layer-group w-5"></i><span class="ml-3">Golongan</span>
+                        </a>
+                        <a href="/jabatans" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('jabatans*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-briefcase w-5"></i><span class="ml-3">Jabatan</span>
+                        </a>
+                        <a href="/lokasis" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('lokasis*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-map-marker-alt w-5"></i><span class="ml-3">Lokasi</span>
                         </a>
                     </div>
                 </div>

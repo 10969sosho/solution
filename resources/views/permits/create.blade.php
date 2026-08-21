@@ -13,8 +13,8 @@
                 Form Izin
             </h3>
             <p class="text-sm text-gray-500 mt-1">
-                Izin &lt; 15 menit = <span class="text-green-600 font-medium">Tanpa Potongan</span>
-                | Izin &gt; 30 menit = <span class="text-red-600 font-medium">Potong Gaji</span> (proporsional)
+                Izin < 15 menit = <span class="text-green-600 font-medium">Tanpa Potongan</span>
+                | Izin > 30 menit = <span class="text-red-600 font-medium">Potong Gaji</span> (proporsional)
             </p>
         </div>
 
@@ -23,10 +23,10 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Karyawan <span class="text-red-500">*</span></label>
-                <select name="employee_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <select name="employee_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus-border-transparent">
                     <option value="">-- Pilih Karyawan --</option>
                     @foreach($employees as $emp)
-                    <option value="{{ $emp->id }}" {{ old('employee_id') == $emp->id ? 'selected' : '' }}>
+                    <option value="{{ $emp->id }}" data-location="{{ $emp->location }}" data-position="{{ $emp->position }}" {{ old('employee_id') == $emp->id ? 'selected' : '' }}>
                         {{ $emp->employee_id }} - {{ $emp->name }}
                     </option>
                     @endforeach
@@ -34,10 +34,25 @@
                 @error('employee_id') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Lokasi <span class="text-red-500">*</span></label>
+                    <input type="text" name="location" value="{{ old('location') }}"
+                        readonly class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Otomatis dari nama karyawan">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Jabatan <span class="text-red-500">*</span></label>
+                    <input type="text" name="position" value="{{ old('position') }}"
+                        readonly class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Otomatis dari nama karyawan">
+                </div>
+            </div>
+
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Izin <span class="text-red-500">*</span></label>
                 <input type="date" name="permit_date" value="{{ old('permit_date') }}" required
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 @error('permit_date') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
@@ -45,21 +60,48 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Waktu Mulai <span class="text-red-500">*</span></label>
                     <input type="time" name="start_time" value="{{ old('start_time') }}" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Waktu Selesai <span class="text-red-500">*</span></label>
                     <input type="time" name="end_time" value="{{ old('end_time') }}" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Alasan <span class="text-red-500">*</span></label>
-                <textarea name="reason" rows="3" required
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Contoh: Ban gembos, urusan keluarga, dll">{{ old('reason') }}</textarea>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
+                <textarea name="reason" rows="3"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Contoh: Sakit, keluarga, dll">{{ old('reason') }}</textarea>
                 @error('reason') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Potongan</label>
+                    <div class="space-y-1">
+                        <label class="flex items-center px-3 py-1 rounded border cursor-pointer hover:border-blue-500">
+                            <input type="radio" name="deduction_type" value="no_deduction" {{ old('deduction_type') == 'no_deduction' ? 'checked' : '' }}>
+                            <span>Tanpa Potongan</span>
+                        </label>
+                        <label class="flex items-center px-3 py-1 rounded border cursor-pointer hover:border-blue-500">
+                            <input type="radio" name="deduction_type" value="salary_deduction" {{ old('deduction_type') == 'salary_deduction' ? 'checked' : '' }}>
+                            <span>Potong Gaji</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="duration-field" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Durasi Potongan</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="number" name="deduction_hours" value="{{ old('deduction_hours', 0) }}" min="0"
+                            class="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <span>Jam</span>
+                        <input type="number" name="deduction_minutes" value="{{ old('deduction_minutes', 0) }}" min="0"
+                            class="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <span>Menit</span>
+                    </div>
+                </div>
             </div>
 
             <div class="flex space-x-3 pt-4">
@@ -73,4 +115,40 @@
         </form>
     </div>
 </div>
-@endsection
+
+<script>
+    // Auto-fill location and jabatan when employee selected (basic implementation)
+    document.addEventListener('DOMContentLoaded', function() {
+        const employeeSelect = document.querySelector('select[name="employee_id"]');
+        const durationField = document.getElementById('duration-field');
+        
+        if (employeeSelect) {
+            employeeSelect.addEventListener('change', function() {
+                const option = this.options[this.selectedIndex];
+                const dataLocation = option.getAttribute('data-location');
+                const dataPosition = option.getAttribute('data-position');
+                
+                if (dataLocation) {
+                    document.querySelector('input[name="location"]').value = dataLocation;
+                }
+                if (dataPosition) {
+                    document.querySelector('input[name="position"]').value = dataPosition;
+                }
+                
+                // Show duration field when "Potong Gaji" is selected
+                const deductionType = document.querySelector('input[name="deduction_type"]:checked');
+                if (deductionType && deductionType.value === 'salary_deduction') {
+                    durationField.classList.remove('hidden');
+                } else {
+                    durationField.classList.add('hidden');
+                }
+            });
+        }
+        
+        // Initial check
+        const initialDeduction = document.querySelector('input[name="deduction_type"]:checked');
+        if (initialDeduction && initialDeduction.value === 'salary_deduction') {
+            durationField.classList.remove('hidden');
+        }
+    });
+</script>

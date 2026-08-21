@@ -13,7 +13,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 mb-1">Absensi Hari Ini</p>
-                    <p class="text-3xl font-bold text-gray-800" x-text="stats.total_today">0</p>
+                    <p class="text-3xl font-bold text-gray-800">{{ $stats['total_today'] }}</p>
                     <p class="text-xs text-gray-400 mt-2">
                         <i class="fas fa-calendar-day"></i> {{ now()->format('d M Y') }}
                     </p>
@@ -29,7 +29,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 mb-1">Mesin Aktif</p>
-                    <p class="text-3xl font-bold text-gray-800" x-text="stats.total_machines">0</p>
+                    <p class="text-3xl font-bold text-gray-800">{{ $stats['total_machines'] }}</p>
                     <p class="text-xs text-gray-400 mt-2">
                         <i class="fas fa-server"></i> Terhubung
                     </p>
@@ -45,7 +45,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 mb-1">Total Karyawan</p>
-                    <p class="text-3xl font-bold text-gray-800" x-text="stats.total_users">0</p>
+                    <p class="text-3xl font-bold text-gray-800">{{ \App\Models\Employee::where('status', 'active')->count() }}</p>
                     <p class="text-xs text-gray-400 mt-2">
                         <i class="fas fa-users"></i> Terdaftar
                     </p>
@@ -61,9 +61,9 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 mb-1">Scan Terakhir</p>
-                    <p class="text-xl font-bold text-gray-800" x-text="stats.latest_time">-</p>
+                    <p class="text-xl font-bold text-gray-800">{{ $stats['latest_scan']?->scan_time?->format('H:i:s') ?? '-' }}</p>
                     <p class="text-xs text-gray-400 mt-2">
-                        <i class="fas fa-user"></i> <span x-text="stats.latest_user">-</span>
+                        <i class="fas fa-user"></i> {{ $stats['latest_scan'] ? ($employee = \App\Models\Employee::where('employee_id', $stats['latest_scan']->user_id)->first()) ? $employee->name : $stats['latest_scan']->user_id : '-' }}
                     </p>
                 </div>
                 <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -182,13 +182,6 @@ function dashboard() {
     return {
         loading: false,
         logs: [],
-        stats: {
-            total_today: 0,
-            total_machines: 0,
-            total_users: 0,
-            latest_time: '-',
-            latest_user: '-'
-        },
         lastUpdate: '-',
         refreshInterval: null,
 
