@@ -22,7 +22,6 @@ class GolonganController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:golongans',
         ]);
 
         Golongan::create($validated);
@@ -39,7 +38,6 @@ class GolonganController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:golongans,code,' . $golongan->id,
         ]);
 
         $golongan->update($validated);

@@ -27,7 +27,6 @@
             <table class="w-full">
                 <thead class="bg-gray-50 border-b border-gray-200">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                     </tr>
@@ -35,7 +34,6 @@
                 <tbody class="divide-y divide-gray-200">
                     @forelse($jabatans as $jabatan)
                     <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 text-sm font-medium text-gray-800">{{ $jabatan->code }}</td>
                         <td class="px-6 py-4 text-sm text-gray-700">{{ $jabatan->name }}</td>
                         <td class="px-6 py-4">
                             <div class="flex space-x-2">
@@ -54,7 +52,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="3" class="px-6 py-12 text-center">
+                        <td colspan="2" class="px-6 py-12 text-center">
                             <i class="fas fa-list text-4xl text-gray-300 mb-3"></i>
                             <p class="text-gray-500">Belum ada data jabatan</p>
                         </td>

@@ -44,7 +44,7 @@
                         <option value="">-- Global (Semua Golongan) --</option>
                         @foreach($golongans as $golongan)
                         <option value="{{ $golongan->id }}" {{ old('golongan_id') == $golongan->id ? 'selected' : '' }}>
-                            {{ $golongan->name }} ({{ $golongan->code }})
+                            {{ $golongan->name }}
                         </option>
                         @endforeach
                     </select>

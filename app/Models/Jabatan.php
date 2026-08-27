@@ -6,11 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Jabatan extends Model
 {
-    protected $fillable = ['name', 'code'];
-
-    protected $casts = [
-        'code' => 'string',
-    ];
+    protected $fillable = ['name'];
 
     public function employees()
     {

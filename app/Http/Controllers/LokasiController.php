@@ -22,7 +22,6 @@ class LokasiController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:lokasis',
         ]);
 
         Lokasi::create($validated);
@@ -39,7 +38,6 @@ class LokasiController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:lokasis,code,' . $lokasi->id,
         ]);
 
         $lokasi->update($validated);

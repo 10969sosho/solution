@@ -22,7 +22,6 @@ class JabatanController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:jabatans',
         ]);
 
         Jabatan::create($validated);
@@ -39,7 +38,6 @@ class JabatanController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:jabatans,code,' . $jabatan->id,
         ]);
 
         $jabatan->update($validated);
