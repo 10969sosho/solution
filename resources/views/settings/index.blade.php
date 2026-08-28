@@ -35,6 +35,7 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Golongan</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hari</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jam Masuk</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jam Keluar</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Istirahat</th>
@@ -55,6 +56,13 @@
                                 <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">{{ $setting->golongan->name }}</span>
                             @else
                                 <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">Global (Semua)</span>
+                            @endif
+                        </td>
+                        <td class="px-6 py-4">
+                            @if($setting->day)
+                                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">{{ str_replace(',', ', ', $setting->day) }}</span>
+                            @else
+                                <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">Semua Hari</span>
                             @endif
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-700">
@@ -84,7 +92,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-12 text-center">
+                        <td colspan="9" class="px-6 py-12 text-center">
                             <i class="fas fa-cog text-4xl text-gray-300 mb-3"></i>
                             <p class="text-gray-500">Belum ada setting jam kerja</p>
                         </td>

@@ -143,7 +143,7 @@ class AttendanceProcessingService
      */
     public function resolveSchedule(Employee $employee, Carbon $date): array
     {
-        $default = WorkSetting::getActiveForGolongan($employee->golongan_id);
+        $default = WorkSetting::getActiveForGolongan($employee->golongan_id, $date);
 
         $schedule = $employee->activeSchedule()
             ->where(function ($q) use ($date) {

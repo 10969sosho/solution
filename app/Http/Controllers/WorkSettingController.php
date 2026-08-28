@@ -26,6 +26,8 @@ class WorkSettingController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'day' => 'nullable|array',
+            'day.*' => 'in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu',
             'golongan_id' => 'nullable|exists:golongans,id',
             'check_in_time' => 'required',
             'check_out_time' => 'required',
@@ -41,6 +43,7 @@ class WorkSettingController extends Controller
             $validated[$field] = substr($validated[$field], 0, 5);
         }
 
+        $validated['day'] = ! empty($validated['day']) ? implode(',', $validated['day']) : null;
         $validated['is_active'] = $request->has('is_active');
 
         WorkSetting::create($validated);
@@ -58,6 +61,8 @@ class WorkSettingController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'day' => 'nullable|array',
+            'day.*' => 'in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu',
             'golongan_id' => 'nullable|exists:golongans,id',
             'check_in_time' => 'required',
             'check_out_time' => 'required',
@@ -73,6 +78,7 @@ class WorkSettingController extends Controller
             $validated[$field] = substr($validated[$field], 0, 5);
         }
 
+        $validated['day'] = ! empty($validated['day']) ? implode(',', $validated['day']) : null;
         $validated['is_active'] = $request->has('is_active');
 
         $setting->update($validated);
