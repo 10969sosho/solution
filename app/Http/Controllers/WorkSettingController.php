@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Golongan;
 use App\Models\WorkSetting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class WorkSettingController extends Controller
 {
@@ -24,7 +25,12 @@ class WorkSettingController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $data = $request->all();
+        if (empty($data['golongan_id'])) {
+            $data['golongan_id'] = null;
+        }
+
+        $validated = Validator::make($data, [
             'name' => 'required|string|max:255',
             'day' => 'nullable|array',
             'day.*' => 'in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu',
@@ -35,16 +41,16 @@ class WorkSettingController extends Controller
             'break_in_time' => 'required',
             'late_tolerance_minutes' => 'required|integer|min:0|max:120',
             'overtime_threshold_minutes' => 'required|integer|min:0|max:240',
-            'is_active' => 'boolean',
+            'is_active' => 'nullable|boolean',
             'description' => 'nullable|string',
-        ]);
+        ])->validate();
 
         foreach (['check_in_time', 'check_out_time', 'break_out_time', 'break_in_time'] as $field) {
             $validated[$field] = substr($validated[$field], 0, 5);
         }
 
         $validated['day'] = ! empty($validated['day']) ? implode(',', $validated['day']) : null;
-        $validated['is_active'] = $request->has('is_active');
+        $validated['is_active'] = $request->boolean('is_active');
 
         WorkSetting::create($validated);
 
@@ -59,7 +65,12 @@ class WorkSettingController extends Controller
 
     public function update(Request $request, WorkSetting $setting)
     {
-        $validated = $request->validate([
+        $data = $request->all();
+        if (empty($data['golongan_id'])) {
+            $data['golongan_id'] = null;
+        }
+
+        $validated = Validator::make($data, [
             'name' => 'required|string|max:255',
             'day' => 'nullable|array',
             'day.*' => 'in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu',
@@ -70,16 +81,16 @@ class WorkSettingController extends Controller
             'break_in_time' => 'required',
             'late_tolerance_minutes' => 'required|integer|min:0|max:120',
             'overtime_threshold_minutes' => 'required|integer|min:0|max:240',
-            'is_active' => 'boolean',
+            'is_active' => 'nullable|boolean',
             'description' => 'nullable|string',
-        ]);
+        ])->validate();
 
         foreach (['check_in_time', 'check_out_time', 'break_out_time', 'break_in_time'] as $field) {
             $validated[$field] = substr($validated[$field], 0, 5);
         }
 
         $validated['day'] = ! empty($validated['day']) ? implode(',', $validated['day']) : null;
-        $validated['is_active'] = $request->has('is_active');
+        $validated['is_active'] = $request->boolean('is_active');
 
         $setting->update($validated);
 

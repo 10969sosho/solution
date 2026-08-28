@@ -30,7 +30,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jabatan</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Departemen</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lokasi</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                     </tr>
@@ -45,7 +45,7 @@
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-700">{{ $employee->position ?? '-' }}</td>
                         <td class="px-6 py-4">
-                            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">{{ $employee->department ?? '-' }}</span>
+                            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">{{ $employee->lokasi->name ?? '-' }}</span>
                         </td>
                         <td class="px-6 py-4">
                             <span class="px-3 py-1 rounded-full text-xs font-medium

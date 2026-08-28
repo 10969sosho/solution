@@ -85,9 +85,18 @@
                             @endif
                         </td>
                         <td class="px-6 py-4">
-                            <a href="{{ route('settings.edit', $setting) }}" class="text-blue-600 hover:text-blue-800">
-                                <i class="fas fa-edit mr-1"></i>Edit
-                            </a>
+                            <div class="flex space-x-2">
+                                <a href="{{ route('settings.edit', $setting) }}" class="text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-edit mr-1"></i>Edit
+                                </a>
+                                <form action="{{ route('settings.destroy', $setting) }}" method="POST" class="inline" onsubmit="return confirm('Yakin hapus setting ini?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-red-600 hover:text-red-800">
+                                        <i class="fas fa-trash mr-1"></i>Hapus
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     @empty
