@@ -18,6 +18,16 @@
             <p class="text-sm text-gray-500 mb-1">Karyawan</p>
             <p class="text-lg font-bold text-gray-800">{{ $loan->employee?->name }}</p>
             <p class="text-xs text-gray-400 mt-1">{{ $loan->employee?->employee_id }}</p>
+            @if($loan->employee?->location || $loan->employee?->position)
+            <div class="mt-2 pt-2 border-t border-gray-100">
+                @if($loan->employee?->location)
+                <p class="text-xs text-gray-500"><i class="fas fa-map-marker-alt mr-1"></i>{{ $loan->employee?->location }}</p>
+                @endif
+                @if($loan->employee?->position)
+                <p class="text-xs text-gray-500"><i class="fas fa-briefcase mr-1"></i>{{ $loan->employee?->position }}</p>
+                @endif
+            </div>
+            @endif
         </div>
         <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-yellow-500">
             <p class="text-sm text-gray-500 mb-1">Nominal Pinjaman</p>
