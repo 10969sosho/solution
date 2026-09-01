@@ -77,31 +77,40 @@
                 @error('reason') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Potongan</label>
-                    <div class="space-y-1">
-                        <label class="flex items-center px-3 py-1 rounded border cursor-pointer hover:border-blue-500">
-                            <input type="radio" name="deduction_type" value="no_deduction" {{ old('deduction_type') == 'no_deduction' ? 'checked' : '' }}>
-                            <span>Tanpa Potongan</span>
-                        </label>
-                        <label class="flex items-center px-3 py-1 rounded border cursor-pointer hover:border-blue-500">
-                            <input type="radio" name="deduction_type" value="salary_deduction" {{ old('deduction_type') == 'salary_deduction' ? 'checked' : '' }}>
-                            <span>Potong Gaji</span>
-                        </label>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Potongan</label>
+                <div class="space-y-2">
+                    <label class="flex items-center px-3 py-2 rounded border cursor-pointer hover:border-blue-500">
+                        <input type="radio" name="deduction_type" value="no_deduction" class="mr-2" {{ old('deduction_type') == 'no_deduction' ? 'checked' : '' }}>
+                        <span>Tanpa Potongan</span>
+                    </label>
+                    <label class="flex items-center px-3 py-2 rounded border cursor-pointer hover:border-blue-500">
+                        <input type="radio" name="deduction_type" value="salary_deduction" class="mr-2" {{ old('deduction_type') == 'salary_deduction' ? 'checked' : '' }}>
+                        <span>Potong Gaji</span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="duration-field" class="hidden bg-red-50 border border-red-200 rounded-lg p-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-clock text-red-500 mr-1"></i>
+                    Durasi Potongan Gaji
+                </label>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Jam</label>
+                        <input type="number" name="deduction_hours" id="deduction_hours" value="{{ old('deduction_hours', 0) }}" min="0"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Menit</label>
+                        <input type="number" name="deduction_minutes" id="deduction_minutes" value="{{ old('deduction_minutes', 0) }}" min="0" max="59"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent">
                     </div>
                 </div>
-                <div id="duration-field" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Durasi Potongan</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <input type="number" name="deduction_hours" value="{{ old('deduction_hours', 0) }}" min="0"
-                            class="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <span>Jam</span>
-                        <input type="number" name="deduction_minutes" value="{{ old('deduction_minutes', 0) }}" min="0"
-                            class="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <span>Menit</span>
-                    </div>
-                </div>
+                <p id="deduction-summary" class="mt-3 text-sm font-medium text-red-600">
+                    Potong gaji: 0 jam 0 menit
+                </p>
             </div>
 
             <div class="flex space-x-3 pt-4">
@@ -117,11 +126,15 @@
 </div>
 
 <script>
-    // Auto-fill location and jabatan when employee selected (basic implementation)
     document.addEventListener('DOMContentLoaded', function() {
         const employeeSelect = document.querySelector('select[name="employee_id"]');
         const durationField = document.getElementById('duration-field');
-        
+        const deductionTypeRadios = document.querySelectorAll('input[name="deduction_type"]');
+        const deductionHoursInput = document.getElementById('deduction_hours');
+        const deductionMinutesInput = document.getElementById('deduction_minutes');
+        const deductionSummary = document.getElementById('deduction-summary');
+
+        // Auto-fill location and jabatan when employee selected
         if (employeeSelect) {
             employeeSelect.addEventListener('change', function() {
                 const option = this.options[this.selectedIndex];
@@ -134,22 +147,42 @@
                 if (dataPosition) {
                     document.querySelector('input[name="position"]').value = dataPosition;
                 }
-                
-                // Show duration field when "Potong Gaji" is selected
-                const deductionType = document.querySelector('input[name="deduction_type"]:checked');
-                if (deductionType && deductionType.value === 'salary_deduction') {
-                    durationField.classList.remove('hidden');
-                } else {
-                    durationField.classList.add('hidden');
-                }
             });
         }
-        
-        // Initial check
-        const initialDeduction = document.querySelector('input[name="deduction_type"]:checked');
-        if (initialDeduction && initialDeduction.value === 'salary_deduction') {
-            durationField.classList.remove('hidden');
+
+        // Toggle duration field and update summary
+        function toggleDurationField() {
+            const selectedType = document.querySelector('input[name="deduction_type"]:checked');
+            if (selectedType && selectedType.value === 'salary_deduction') {
+                durationField.classList.remove('hidden');
+                updateSummary();
+            } else {
+                durationField.classList.add('hidden');
+            }
         }
+
+        // Update "Potong gaji: X jam Y menit" summary text
+        function updateSummary() {
+            const hours = parseInt(deductionHoursInput.value) || 0;
+            const minutes = parseInt(deductionMinutesInput.value) || 0;
+            deductionSummary.textContent = `Potong gaji: ${hours} jam ${minutes} menit`;
+        }
+
+        // Add event listeners to radio buttons
+        deductionTypeRadios.forEach(function(radio) {
+            radio.addEventListener('change', toggleDurationField);
+        });
+
+        // Add event listeners to hours/minutes inputs
+        if (deductionHoursInput) {
+            deductionHoursInput.addEventListener('input', updateSummary);
+        }
+        if (deductionMinutesInput) {
+            deductionMinutesInput.addEventListener('input', updateSummary);
+        }
+
+        // Initial check on page load
+        toggleDurationField();
     });
 </script>
 @endsection

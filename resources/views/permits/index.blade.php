@@ -80,6 +80,9 @@
                                 @if($permit->type === 'no_deduction') bg-green-100 text-green-800 @else bg-red-100 text-red-800 @endif">
                                 {{ $permit->type === 'no_deduction' ? 'Tanpa Potongan' : 'Potong Gaji' }}
                             </span>
+                            @if($permit->type === 'salary_deduction' && ($permit->deduction_hours > 0 || $permit->deduction_minutes > 0))
+                            <p class="text-xs text-red-600 mt-1">{{ $permit->deduction_hours }} jam {{ $permit->deduction_minutes }} menit</p>
+                            @endif
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-700 max-w-xs truncate">{{ $permit->reason }}</td>
                         <td class="px-6 py-4">
