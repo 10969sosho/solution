@@ -19,6 +19,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class DummyDataSeeder extends Seeder
 {
@@ -176,7 +177,7 @@ class DummyDataSeeder extends Seeder
                 'email' => strtolower(str_replace(' ', '.', $data['name'])) . '@3putraperkasa.com',
                 'join_date' => Carbon::now()->subMonths(mt_rand(6, 24))->toDateString(),
                 'salary_tier' => ['A', 'B', 'C', 'D'][array_rand(['A', 'B', 'C', 'D'])],
-                'address' => fake()->address(),
+                'address' => 'Jl. ' . Str::random(2) . ' No. ' . mt_rand(1, 200) . ', Jakarta',
             ]));
         }
         $this->command->info('  Created: ' . count($employees) . ' employees');
@@ -268,21 +269,21 @@ class DummyDataSeeder extends Seeder
                         'scan_time' => $scanTimeCheckIn,
                         'status' => $isLate,
                         'raw_data' => null,
-                        'ip_address' => fake()->ipv4(),
-                        'user_agent' => 'iClock ZKTeco',
-                    ]);
-                    $totalLogs++;
+                        'ip_address' => mt_rand(1, 255) . '.' . mt_rand(1, 255) . '.' . mt_rand(1, 255) . '.' . mt_rand(1, 255),
+                                            'user_agent' => 'iClock ZKTeco',
+                                        ]);
+                                        $totalLogs++;
 
-                    // Check-out log
-                    AttendanceLog::create([
-                        'machine_sn' => (string) mt_rand(1, 3),
-                        'user_id' => $emp->employee_id,
-                        'scan_time' => $scanTimeCheckOut,
-                        'status' => 0,
-                        'raw_data' => null,
-                        'ip_address' => fake()->ipv4(),
-                        'user_agent' => 'iClock ZKTeco',
-                    ]);
+                                        // Check-out log
+                                        AttendanceLog::create([
+                                            'machine_sn' => (string) mt_rand(1, 3),
+                                            'user_id' => $emp->employee_id,
+                                            'scan_time' => $scanTimeCheckOut,
+                                            'status' => 0,
+                                            'raw_data' => null,
+                                            'ip_address' => mt_rand(1, 255) . '.' . mt_rand(1, 255) . '.' . mt_rand(1, 255) . '.' . mt_rand(1, 255),
+                                            'user_agent' => 'iClock ZKTeco',
+                                        ]);
                     $totalLogs++;
                 }
             }
@@ -300,10 +301,7 @@ class DummyDataSeeder extends Seeder
             // 2-4 permits per employee
             $count = mt_rand(2, 4);
             for ($p = 0; $p < $count; $p++) {
-                $type = fake()->randomElement([
-                    Permit::TYPE_NO_DEDUCTION,
-                    Permit::TYPE_SALARY_DEDUCTION,
-                ]);
+                $type = ['no_deduction', 'salary_deduction'][array_rand(['no_deduction', 'salary_deduction'])];
                 $permitCount++;
                 Permit::create([
                     'employee_id' => $emp->id,
@@ -315,7 +313,7 @@ class DummyDataSeeder extends Seeder
                     'end_time' => '17:00:00',
                     'duration_minutes' => mt_rand(60, 480),
                     'reason' => $permitReasons[array_rand($permitReasons)],
-                    'status' => fake()->randomElement(['pending', 'approved', 'approved', 'rejected']),
+                    'status' => ['pending', 'approved', 'approved', 'rejected'][array_rand(['pending', 'approved', 'approved', 'rejected'])],
                     'deduction_type' => $type === Permit::TYPE_SALARY_DEDUCTION ? 'daily' : null,
                     'deduction_hours' => $type === Permit::TYPE_SALARY_DEDUCTION ? 8 : 0,
                     'deduction_minutes' => 0,
@@ -341,9 +339,7 @@ class DummyDataSeeder extends Seeder
                 'employee_id' => $emp->id,
                 'loan_date' => Carbon::now()->subMonths(mt_rand(1, 6))->toDateString(),
                 'principal' => $principal,
-                'description' => fake()->randomElement([
-                    'Pinjaman Karyawan', 'Emergency Loan', 'Medical Loan',
-                ]),
+                'description' => ['Pinjaman Karyawan', 'Emergency Loan', 'Medical Loan'][array_rand(['Pinjaman Karyawan', 'Emergency Loan', 'Medical Loan'])],
                 'status' => $status,
                 'previous_loans_total' => mt_rand(0, 2000000),
                 'all_loans_total' => $principal + mt_rand(0, 2000000),
