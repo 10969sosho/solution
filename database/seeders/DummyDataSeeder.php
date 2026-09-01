@@ -26,8 +26,13 @@ class DummyDataSeeder extends Seeder
     {
         $this->command->info('DummyDataSeeder: Menjalankan seeder data dummy...');
 
-        // Disable FK checks for SQLite
-        DB::statement('PRAGMA foreign_keys = OFF');
+        // Disable FK checks (driver-aware: SQLite uses PRAGMA, MySQL/MariaDB uses SET FOREIGN_KEY_CHECKS)
+        $driver = DB::connection()->getDriverName();
+        if ($driver === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = OFF');
+        } else {
+            DB::statement('SET FOREIGN_KEY_CHECKS = 0');
+        }
 
         $tables = [
             'payrolls', 'loan_payments', 'loans', 'permits',
@@ -42,7 +47,11 @@ class DummyDataSeeder extends Seeder
             }
         }
 
-        DB::statement('PRAGMA foreign_keys = ON');
+        if ($driver === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = ON');
+        } else {
+            DB::statement('SET FOREIGN_KEY_CHECKS = 1');
+        }
 
         // 1. Super admin user
         User::firstOrCreate(
@@ -55,19 +64,18 @@ class DummyDataSeeder extends Seeder
         );
         $this->command->info('  Created: User super admin');
 
-        // 2. Golongan (use DB::table to handle legacy 'code' column on SQLite)
+        // 2. Golongan (legacy 'code' column dropped on production schema)
         $golonganNames = [
             'Golongan I', 'Golongan II', 'Golongan III',
             'Golongan IV', 'Golongan V', 'Golongan VI',
         ];
         $golongans = [];
         foreach ($golonganNames as $i => $name) {
-            $id = DB::table('golongans')->insertGetId([
-                'name' => $name,
-                'code' => 'G' . ($i + 1), // legacy column, may be ignored on MySQL
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $payload = ['name' => $name, 'created_at' => now(), 'updated_at' => now()];
+            if (DB::getSchemaBuilder()->hasColumn('golongans', 'code')) {
+                $payload['code'] = 'G' . ($i + 1);
+            }
+            $id = DB::table('golongans')->insertGetId($payload);
             $golongans[] = (object) ['id' => $id, 'name' => $name];
         }
         $this->command->info('  Created: ' . count($golongans) . ' golongan');
@@ -80,12 +88,11 @@ class DummyDataSeeder extends Seeder
         ];
         $jabatans = [];
         foreach ($jabatanNames as $i => $name) {
-            $id = DB::table('jabatans')->insertGetId([
-                'name' => $name,
-                'code' => 'J' . ($i + 1),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $payload = ['name' => $name, 'created_at' => now(), 'updated_at' => now()];
+            if (DB::getSchemaBuilder()->hasColumn('jabatans', 'code')) {
+                $payload['code'] = 'J' . ($i + 1);
+            }
+            $id = DB::table('jabatans')->insertGetId($payload);
             $jabatans[] = (object) ['id' => $id, 'name' => $name];
         }
         $this->command->info('  Created: ' . count($jabatans) . ' jabatan');
@@ -97,12 +104,11 @@ class DummyDataSeeder extends Seeder
         ];
         $lokasis = [];
         foreach ($lokasiNames as $i => $name) {
-            $id = DB::table('lokasis')->insertGetId([
-                'name' => $name,
-                'code' => 'L' . ($i + 1),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $payload = ['name' => $name, 'created_at' => now(), 'updated_at' => now()];
+            if (DB::getSchemaBuilder()->hasColumn('lokasis', 'code')) {
+                $payload['code'] = 'L' . ($i + 1);
+            }
+            $id = DB::table('lokasis')->insertGetId($payload);
             $lokasis[] = (object) ['id' => $id, 'name' => $name];
         }
         $this->command->info('  Created: ' . count($lokasis) . ' lokasi');
