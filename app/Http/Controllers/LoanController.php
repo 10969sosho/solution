@@ -171,4 +171,85 @@ class LoanController extends Controller
 
         return view('loans.mutasi', compact('mutasi', 'employees', 'year', 'month', 'employeeId'));
     }
+
+    /**
+     * Laporan pinjaman bulanan - menampilkan sisa bon, pinjaman baru, dan pembayaran per bulan.
+     */
+    public function laporan(Request $request)
+    {
+        $year = (int) $request->input('year', now()->year);
+        $month = (int) $request->input('month', now()->month);
+        $employeeId = $request->input('employee_id');
+
+        $employees = Employee::query()
+            ->where('status', 'active')
+            ->whereHas('loans')
+            ->orderBy('name')
+            ->get();
+
+        if ($employeeId) {
+            $employees = $employees->where('employee_id', $employeeId);
+        }
+
+        $report = [];
+        $monthNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+        ];
+
+        $reportMonthName = $monthNames[$month];
+
+        foreach ($employees as $employee) {
+            $loans = $employee->loans()->orderBy('loan_date')->get();
+
+            $totalPrincipal = (float) $loans->sum('principal');
+            $totalPaid = (float) $employee->loans->flatMap->payments->sum('amount');
+
+            // Sisa dari bulan sebelumnya (total principal - total pembayaran sampai akhir bulan lalu)
+            $paymentsBeforeMonth = $employee->loans->flatMap->payments
+                ->filter(function ($payment) use ($year, $month) {
+                    $payDate = $payment->payment_date;
+                    return $payDate->year < $year || ($payDate->year == $year && $payDate->month < $month);
+                })
+                ->sum('amount');
+
+            $loansBeforeMonth = $loans->filter(function ($loan) use ($year, $month) {
+                $loanDate = $loan->loan_date;
+                return $loanDate->year < $year || ($loanDate->year == $year && $loanDate->month < $month);
+            })->sum('principal');
+
+            $sisaBefore = $loansBeforeMonth - $paymentsBeforeMonth;
+
+            // Pinjaman baru di bulan ini
+            $bonMonth = $loans->filter(function ($loan) use ($year, $month) {
+                $loanDate = $loan->loan_date;
+                return $loanDate->year == $year && $loanDate->month == $month;
+            })->sum('principal');
+
+            // Pembayaran di bulan ini
+            $bayarMonth = $employee->loans->flatMap->payments
+                ->filter(function ($payment) use ($year, $month) {
+                    $payDate = $payment->payment_date;
+                    return $payDate->year == $year && $payDate->month == $month;
+                })
+                ->sum('amount');
+
+            // Sisa akhir
+            $sisaAkhir = $sisaBefore + $bonMonth - $bayarMonth;
+            $status = $sisaAkhir <= 0 ? 'Lunas' : 'Belum Lunas';
+
+            $report[] = [
+                'employee_id' => $employee->employee_id,
+                'name' => $employee->name,
+                'sisa_before' => $sisaBefore,
+                'bon_month' => $bonMonth,
+                'bayar_month' => $bayarMonth,
+                'sisa_akhir' => max(0, $sisaAkhir),
+                'status' => $status,
+            ];
+        }
+
+        return view('loans.laporan', compact('report', 'employees', 'year', 'month', 'reportMonthName'));
+    }
 }

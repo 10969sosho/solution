@@ -60,6 +60,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/loans/create', [LoanController::class, 'create'])->name('loans.create');
     Route::post('/loans', [LoanController::class, 'store'])->name('loans.store');
     Route::get('/loans/mutasi', [LoanController::class, 'mutasi'])->name('loans.mutasi');
+    Route::get('/loans/laporan', [LoanController::class, 'laporan'])->name('loans.laporan');
     Route::get('/loans/{loan}', [LoanController::class, 'show'])->name('loans.show');
     Route::post('/loans/{loan}/payments', [LoanController::class, 'storePayment'])->name('loans.payments');
     Route::get('/loans/{loan}/pay', [LoanController::class, 'paymentCreate'])->name('loans.paymentCreate');
