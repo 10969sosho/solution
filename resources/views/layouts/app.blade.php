@@ -105,6 +105,9 @@
                         <a href="/reports/monthly" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('reports/monthly*') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-chart-bar w-5"></i><span class="ml-3">Laporan Bulanan</span>
                         </a>
+                        <a href="/loans/laporan" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('loans/laporan*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-file-invoice-dollar w-5"></i><span class="ml-3">Laporan Pinjaman</span>
+                        </a>
                         <a href="/reports/summary" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('reports/summary*') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-file-alt w-5"></i><span class="ml-3">Rekap Bulanan</span>
                         </a>
@@ -120,7 +123,7 @@
                         <a href="/permits" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('permits*') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-file-contract w-5"></i><span class="ml-3">Manajemen Izin</span>
                         </a>
-                        <a href="/loans" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('loans*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                        <a href="/loans" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('loans') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-hand-holding-usd w-5"></i><span class="ml-3">Pinjaman / Kasbon</span>
                         </a>
                         @if(auth()->user()?->canManagePayroll())
