@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class PotonganTerlambat extends Model
 {
     protected $table = 'potongan_terlamats';
-    protected $fillable = ['golongan_id', 'min_minutes', 'max_minutes', 'amount'];
+    protected $fillable = ['golongan_id', 'type', 'min_minutes', 'max_minutes', 'amount'];
 
     public function golongan()
     {
@@ -20,5 +20,10 @@ class PotonganTerlambat extends Model
             return '>' . $this->min_minutes . ' menit';
         }
         return $this->min_minutes . '-' . $this->max_minutes . ' menit';
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return $this->type === 'masuk_kerja' ? 'Masuk Kerja' : 'Setelah Istirahat';
     }
 }

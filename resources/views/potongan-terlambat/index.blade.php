@@ -34,6 +34,7 @@
                     <table class="w-full">
                         <thead class="bg-gray-50 border-b border-gray-200">
                             <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipe</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Range Waktu</th>
                                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Denda</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
@@ -42,6 +43,13 @@
                         <tbody class="divide-y divide-gray-200">
                             @forelse($items as $potongan)
                             <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 text-sm">
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium
+                                        @if($potongan->type === 'masuk_kerja') bg-blue-100 text-blue-800
+                                        @else bg-green-100 text-green-800 @endif">
+                                        {{ $potongan->type_label }}
+                                    </span>
+                                </td>
                                 <td class="px-6 py-4 text-sm text-gray-700">
                                     {{ $potongan->range_label }}
                                 </td>
@@ -69,7 +77,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="3" class="px-6 py-8 text-center">
+                                <td colspan="4" class="px-6 py-8 text-center">
                                     <p class="text-gray-500">Belum ada data potongan</p>
                                 </td>
                             </tr>

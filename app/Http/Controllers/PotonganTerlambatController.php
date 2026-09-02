@@ -30,6 +30,7 @@ class PotonganTerlambatController extends Controller
     {
         $validated = $request->validate([
             'golongan_id' => 'required|exists:golongans,id',
+            'type' => 'required|in:masuk_kerja,setelah_istirahat',
             'min_minutes' => 'required|integer|min:0',
             'max_minutes' => 'nullable|integer|min:0|gte:min_minutes',
             'amount' => 'required|numeric|min:0',
@@ -50,6 +51,7 @@ class PotonganTerlambatController extends Controller
     {
         $validated = $request->validate([
             'golongan_id' => 'required|exists:golongans,id',
+            'type' => 'required|in:masuk_kerja,setelah_istirahat',
             'min_minutes' => 'required|integer|min:0',
             'max_minutes' => 'nullable|integer|min:0|gte:min_minutes',
             'amount' => 'required|numeric|min:0',

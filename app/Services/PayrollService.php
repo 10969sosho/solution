@@ -150,6 +150,7 @@ class PayrollService
         }
 
         $potongan = PotonganTerlambat::where('golongan_id', $golonganId)
+            ->where('type', 'masuk_kerja')
             ->where('min_minutes', '<=', $minutes)
             ->where(function ($query) use ($minutes) {
                 $query->whereNull('max_minutes')
