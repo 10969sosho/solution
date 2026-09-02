@@ -12,7 +12,7 @@ class EmployeeController extends Controller
 {
     public function index()
     {
-        $employees = Employee::query()
+        $employees = Employee::with('lokasi')
             ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $this->operationalScope($q))
             ->orderBy('employee_id')
             ->get();
