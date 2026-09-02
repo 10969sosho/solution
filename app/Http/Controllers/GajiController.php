@@ -25,7 +25,6 @@ class GajiController extends Controller
     {
         $validated = $request->validate([
             'salary' => 'required|numeric|min:0',
-            'salary_tier' => 'nullable|string|max:50',
         ]);
 
         $employee->update($validated);

@@ -27,14 +27,6 @@
                 @error('salary') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Tier Gaji</label>
-                <input type="text" name="salary_tier" value="{{ old('salary_tier', $employee->salary_tier) }}"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Contoh: A / B / C">
-                @error('salary_tier') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
-            </div>
-
             <div class="flex space-x-3 pt-4">
                 <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                     <i class="fas fa-save mr-2"></i>Simpan

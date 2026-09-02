@@ -27,7 +27,6 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jabatan</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Gaji Pokok</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Tier</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                     </tr>
                 </thead>
@@ -42,9 +41,6 @@
                         <td class="px-6 py-4 text-right text-sm font-medium text-gray-800">
                             Rp {{ number_format($employee->salary ?? 0, 0, ',', '.') }}
                         </td>
-                        <td class="px-6 py-4 text-center text-sm text-gray-700">
-                            {{ $employee->salary_tier ?? '-' }}
-                        </td>
                         <td class="px-6 py-4">
                             <a href="{{ route('gajis.edit', $employee) }}" class="text-blue-600 hover:text-blue-800">
                                 <i class="fas fa-edit"></i>
@@ -53,7 +49,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center">
+                        <td colspan="4" class="px-6 py-12 text-center">
                             <i class="fas fa-money-bill-wave text-4xl text-gray-300 mb-3"></i>
                             <p class="text-gray-500">Belum ada data karyawan</p>
                         </td>
