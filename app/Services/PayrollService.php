@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Employee;
 use App\Models\Payroll;
+use App\Models\PotonganTerlambat;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -25,7 +26,7 @@ class PayrollService
         $attendance = $this->attendanceService->processMonth($employee, $year, $month);
         $baseSalary = (float) $employee->salary;
 
-        $lateDeduction = $this->calculateLateFine($attendance['total_late_minutes']);
+        $lateDeduction = $this->calculateLateFine($employee, $attendance['total_late_minutes']);
         $loanDeduction = $this->calculateLoanDeduction($employee, $year, $month);
         $absenceDeduction = $this->calculateAbsenceDeduction($employee, $year, $month, $attendance);
         $attendanceBonus = $this->calculateAttendanceBonus($employee, $year, $month);
@@ -136,39 +137,28 @@ class PayrollService
         ];
     }
 
-    private function calculateLateFine(int $minutes): float
+    private function calculateLateFine(Employee $employee, int $minutes): float
     {
         if ($minutes <= 0) {
             return 0;
         }
 
-        $tiers = config('payroll.late_fine.tiers', []);
-        $fine = 0;
-        $remaining = $minutes;
-        $previousMax = 0;
+        $golonganType = $employee->golongan?->type;
 
-        foreach ($tiers as $tier) {
-            $max = $tier['max_minutes'] ?? null;
-            $rate = (int) $tier['per_minute'];
-
-            if ($max === null) {
-                $fine += $remaining * $rate;
-                break;
-            }
-
-            $tierMinutes = min($remaining, $max - $previousMax);
-            if ($tierMinutes > 0) {
-                $fine += $tierMinutes * $rate;
-                $remaining -= $tierMinutes;
-            }
-
-            $previousMax = $max;
-            if ($remaining <= 0) {
-                break;
-            }
+        if (! $golonganType) {
+            return 0;
         }
 
-        return $fine;
+        $potongan = PotonganTerlambat::where('golongan_type', $golonganType)
+            ->where('min_minutes', '<=', $minutes)
+            ->where(function ($query) use ($minutes) {
+                $query->whereNull('max_minutes')
+                    ->orWhere('max_minutes', '>=', $minutes);
+            })
+            ->orderBy('min_minutes', 'desc')
+            ->first();
+
+        return $potongan ? (float) $potongan->amount : 0;
     }
 
     private function calculateLoanDeduction(Employee $employee, int $year, int $month): float
