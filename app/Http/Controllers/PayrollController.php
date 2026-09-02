@@ -73,7 +73,7 @@ class PayrollController extends Controller
                 'join_date' => $employee->join_date?->format('d M Y'),
                 'tenure_months' => $thr['tenure_months'],
                 'long_service' => $thr['long_service'],
-                'salary' => (float) $employee->salary,
+                'salary' => (float) ($employee->gaji?->amount ?? 0),
                 'thr' => $thr['thr'],
             ];
         })->sortByDesc('thr');

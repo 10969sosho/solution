@@ -75,6 +75,9 @@
                         <a href="/lokasis" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('lokasis*') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-map-marker-alt w-5"></i><span class="ml-3">Lokasi</span>
                         </a>
+                        <a href="/gajis" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('gajis*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-money-bill-wave w-5"></i><span class="ml-3">Gaji</span>
+                        </a>
                     </div>
                 </div>
 

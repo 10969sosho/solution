@@ -23,7 +23,7 @@ class PayrollService
     public function calculate(Employee $employee, int $year, int $month): array
     {
         $attendance = $this->attendanceService->processMonth($employee, $year, $month);
-        $baseSalary = (float) $employee->salary;
+        $baseSalary = (float) ($employee->gaji?->amount ?? 0);
 
         $lateDeduction = $this->calculateLateFine($attendance['total_late_minutes']);
         $loanDeduction = $this->calculateLoanDeduction($employee, $year, $month);
@@ -107,7 +107,7 @@ class PayrollService
      */
     public function calculateThr(Employee $employee, int $year): array
     {
-        $baseSalary = (float) $employee->salary;
+        $baseSalary = (float) ($employee->gaji?->amount ?? 0);
         $longServiceMonths = (int) config('payroll.thr.long_service_months', 60);
 
         if (! $employee->join_date) {
@@ -190,7 +190,7 @@ class PayrollService
             return 0;
         }
 
-        $baseSalary = (float) $employee->salary;
+        $baseSalary = (float) ($employee->gaji?->amount ?? 0);
         if ($baseSalary <= 0) {
             return 0;
         }

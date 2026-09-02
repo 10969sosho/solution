@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\Gaji;
 use App\Models\Jabatan;
 use App\Models\Golongan;
 use App\Models\Lokasi;
@@ -25,8 +26,9 @@ class EmployeeController extends Controller
         $jabatans = Jabatan::orderBy('name')->get();
         $golongans = Golongan::orderBy('name')->get();
         $lokasis = Lokasi::orderBy('name')->get();
+        $gajis = Gaji::orderBy('name')->get();
 
-        return view('employees.create', compact('jabatans', 'golongans', 'lokasis'));
+        return view('employees.create', compact('jabatans', 'golongans', 'lokasis', 'gajis'));
     }
 
     public function store(Request $request)
@@ -37,6 +39,7 @@ class EmployeeController extends Controller
             'jabatan_id' => 'nullable|exists:jabatans,id',
             'golongan_id' => 'nullable|exists:golongans,id',
             'lokasi_id' => 'nullable|exists:lokasis,id',
+            'gaji_id' => 'nullable|exists:gajis,id',
             'department' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
@@ -45,8 +48,6 @@ class EmployeeController extends Controller
             'status' => 'required|in:active,inactive,resigned',
             'tanggal_keluar' => 'nullable|date',
             'jam_masuk_normal' => 'nullable|string',
-            'salary' => 'nullable|numeric|min:0',
-            'salary_tier' => 'nullable|string|max:50',
             'address' => 'nullable|string',
         ]);
 
@@ -56,7 +57,7 @@ class EmployeeController extends Controller
 
         if (! auth()->user()->isSuperAdmin()) {
             $this->ensureOperationalPosition($validated);
-            unset($validated['salary'], $validated['salary_tier']);
+            unset($validated['gaji_id']);
         }
 
         $validated['position'] = $validated['jabatan_id'] ? Jabatan::find($validated['jabatan_id'])->name : null;
@@ -79,8 +80,9 @@ class EmployeeController extends Controller
         $jabatans = Jabatan::orderBy('name')->get();
         $golongans = Golongan::orderBy('name')->get();
         $lokasis = Lokasi::orderBy('name')->get();
+        $gajis = Gaji::orderBy('name')->get();
 
-        return view('employees.edit', compact('employee', 'jabatans', 'golongans', 'lokasis'));
+        return view('employees.edit', compact('employee', 'jabatans', 'golongans', 'lokasis', 'gajis'));
     }
 
     public function update(Request $request, Employee $employee)
@@ -93,6 +95,7 @@ class EmployeeController extends Controller
             'jabatan_id' => 'nullable|exists:jabatans,id',
             'golongan_id' => 'nullable|exists:golongans,id',
             'lokasi_id' => 'nullable|exists:lokasis,id',
+            'gaji_id' => 'nullable|exists:gajis,id',
             'department' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
@@ -101,8 +104,6 @@ class EmployeeController extends Controller
             'status' => 'required|in:active,inactive,resigned',
             'tanggal_keluar' => 'nullable|date',
             'jam_masuk_normal' => 'nullable|string',
-            'salary' => 'nullable|numeric|min:0',
-            'salary_tier' => 'nullable|string|max:50',
             'address' => 'nullable|string',
         ]);
 
@@ -112,7 +113,7 @@ class EmployeeController extends Controller
 
         if (! auth()->user()->isSuperAdmin()) {
             $this->ensureOperationalPosition($validated);
-            unset($validated['salary'], $validated['salary_tier']);
+            unset($validated['gaji_id']);
         }
 
         $validated['position'] = $validated['jabatan_id'] ? Jabatan::find($validated['jabatan_id'])->name : null;

@@ -5,6 +5,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\GajiController;
 use App\Http\Controllers\GolonganController;
 use App\Http\Controllers\WorkSettingController;
 use App\Http\Controllers\EmployeeScheduleController;
@@ -73,6 +74,7 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('golongans', GolonganController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
     Route::resource('jabatans', JabatanController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
     Route::resource('lokasis', LokasiController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+    Route::resource('gajis', GajiController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
 
     // Payroll & THR hanya untuk Super Admin / Owner
     Route::middleware(['role:super_admin'])->group(function () {

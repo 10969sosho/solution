@@ -15,6 +15,7 @@ class Employee extends Model
         'golongan_id',
         'jabatan_id',
         'lokasi_id',
+        'gaji_id',
         'tanggal_keluar',
         'jam_masuk_normal',
         'phone',
@@ -71,5 +72,10 @@ class Employee extends Model
     public function lokasi()
     {
         return $this->belongsTo(Lokasi::class);
+    }
+
+    public function gaji()
+    {
+        return $this->belongsTo(Gaji::class);
     }
 }
