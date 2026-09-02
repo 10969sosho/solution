@@ -36,7 +36,7 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Tipe Izin <span class="text-red-500">*</span></label>
-                <select name="category" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <select name="category" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus-border-transparent">
                     <option value="">-- Pilih Tipe Izin --</option>
                     <option value="tidak_masuk" {{ old('category') == 'tidak_masuk' ? 'selected' : '' }}>Tidak Masuk</option>
                     <option value="terlambat" {{ old('category') == 'terlambat' ? 'selected' : '' }}>Terlambat</option>
@@ -94,11 +94,11 @@
                     <div class="space-y-1">
                         <label class="flex items-center px-3 py-1 rounded border cursor-pointer hover:border-blue-500">
                             <input type="radio" name="deduction_type" value="no_deduction" {{ old('deduction_type') == 'no_deduction' ? 'checked' : '' }}>
-                            <span class="ml-2">Tanpa Potongan</span>
+                            <span>Tanpa Potongan</span>
                         </label>
                         <label class="flex items-center px-3 py-1 rounded border cursor-pointer hover:border-blue-500">
                             <input type="radio" name="deduction_type" value="salary_deduction" {{ old('deduction_type') == 'salary_deduction' ? 'checked' : '' }}>
-                            <span class="ml-2">Potong Gaji</span>
+                            <span>Potong Gaji</span>
                         </label>
                     </div>
                 </div>
@@ -131,16 +131,6 @@
     document.addEventListener('DOMContentLoaded', function() {
         const employeeSelect = document.querySelector('select[name="employee_id"]');
         const durationField = document.getElementById('duration-field');
-        const deductionRadios = document.querySelectorAll('input[name="deduction_type"]');
-        
-        function toggleDurationField() {
-            const checked = document.querySelector('input[name="deduction_type"]:checked');
-            if (checked && checked.value === 'salary_deduction') {
-                durationField.classList.remove('hidden');
-            } else {
-                durationField.classList.add('hidden');
-            }
-        }
         
         if (employeeSelect) {
             employeeSelect.addEventListener('change', function() {
@@ -154,14 +144,20 @@
                 if (dataPosition) {
                     document.querySelector('input[name="position"]').value = dataPosition;
                 }
+                
+                const deductionType = document.querySelector('input[name="deduction_type"]:checked');
+                if (deductionType && deductionType.value === 'salary_deduction') {
+                    durationField.classList.remove('hidden');
+                } else {
+                    durationField.classList.add('hidden');
+                }
             });
         }
         
-        deductionRadios.forEach(function(radio) {
-            radio.addEventListener('change', toggleDurationField);
-        });
-        
-        toggleDurationField();
+        const initialDeduction = document.querySelector('input[name="deduction_type"]:checked');
+        if (initialDeduction && initialDeduction.value === 'salary_deduction') {
+            durationField.classList.remove('hidden');
+        }
     });
 </script>
 @endsection
