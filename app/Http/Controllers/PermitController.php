@@ -25,6 +25,14 @@ class PermitController extends Controller
             $query->where('category', $request->category);
         }
 
+        if ($request->filled('start_date')) {
+            $query->where('permit_date', '>=', $request->start_date);
+        }
+
+        if ($request->filled('end_date')) {
+            $query->where('permit_date', '<=', $request->end_date);
+        }
+
         $permits = $query->paginate(25);
         $employees = Employee::where('status', 'active')->orderBy('name')->get();
 
