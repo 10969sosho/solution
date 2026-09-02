@@ -104,7 +104,7 @@
                 <input type="hidden" name="late_fine_amount" id="late_fine_amount" value="0">
             </div>
 
-            <div>
+            <div id="deduction-type-section">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Potongan</label>
                 <div class="space-y-1">
                     <label class="flex items-center px-3 py-1 rounded border cursor-pointer hover:border-blue-500">
@@ -146,6 +146,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         const employeeSelect = document.querySelector('select[name="employee_id"]');
         const categorySelect = document.querySelector('select[name="category"]');
+        const deductionTypeSection = document.getElementById('deduction-type-section');
         const durationField = document.getElementById('duration-field');
         const lateField = document.getElementById('late-field');
         const lateFineDisplay = document.getElementById('late-fine-display');
@@ -193,15 +194,19 @@
         
         function toggleLateField() {
             if (categorySelect.value === 'terlambat') {
+                deductionTypeSection.classList.add('hidden');
+                durationField.classList.add('hidden');
                 lateField.classList.remove('hidden');
                 lateFineDisplay.classList.remove('hidden');
                 calculateLateFine();
             } else {
+                deductionTypeSection.classList.remove('hidden');
                 lateField.classList.add('hidden');
                 lateFineDisplay.classList.add('hidden');
                 lateMinutesInput.value = '';
                 lateFineAmountInput.value = 0;
                 lateFineAmountDisplay.textContent = formatRupiah(0);
+                toggleDuration();
             }
         }
         
