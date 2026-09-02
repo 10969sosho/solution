@@ -120,23 +120,24 @@
                     @endforelse
                 </tbody>
                 @if(count($summary) > 0)
+                @php $summaryCollect = collect($summary); @endphp
                 <tfoot class="bg-gray-50 border-t border-gray-200">
                     <tr class="font-semibold">
                         <td colspan="4" class="px-6 py-3 text-sm text-gray-700">Total</td>
                         <td class="px-6 py-3 text-center text-sm text-blue-600">
-                            {{ $summary->sum('total_izin_no_deduction') ?: '-' }}
+                            {{ $summaryCollect->sum('total_izin_no_deduction') ?: '-' }}
                         </td>
                         <td class="px-6 py-3 text-center text-sm text-red-600">
-                            {{ $summary->sum('total_izin_salary_deduction') ?: '-' }}
+                            {{ $summaryCollect->sum('total_izin_salary_deduction') ?: '-' }}
                         </td>
                         <td class="px-6 py-3 text-center text-sm text-orange-600">
-                            {{ $summary->sum('total_izin_pulang_awal') ?: '-' }}
+                            {{ $summaryCollect->sum('total_izin_pulang_awal') ?: '-' }}
                         </td>
                         <td class="px-6 py-3 text-center text-sm text-yellow-600">
-                            {{ $summary->sum('total_izin_terlambat') ?: '-' }}
+                            {{ $summaryCollect->sum('total_izin_terlambat') ?: '-' }}
                         </td>
                         <td class="px-6 py-3 text-center text-sm text-red-600">
-                            {{ $summary->sum('total_late_minutes') ?: '-' }}
+                            {{ $summaryCollect->sum('total_late_minutes') ?: '-' }}
                         </td>
                     </tr>
                 </tfoot>
