@@ -66,7 +66,7 @@
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">No</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Sisa</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Bon {{ $reportMonthName }}</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Bon {{ $prevMonthName }}</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Bayar {{ $reportMonthName }}</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Sisa Akhir</th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -85,8 +85,8 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 text-right text-sm text-gray-700">
-                            @if($row['bon_month'] > 0)
-                                <span class="text-red-600">Rp {{ number_format($row['bon_month'], 0, ',', '.') }}</span>
+                            @if($row['bon_prev_month'] > 0)
+                                <span class="text-red-600">Rp {{ number_format($row['bon_prev_month'], 0, ',', '.') }}</span>
                             @else
                                 <span class="text-gray-400">-</span>
                             @endif

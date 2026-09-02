@@ -173,7 +173,7 @@ class LoanController extends Controller
     }
 
     /**
-     * Laporan pinjaman bulanan - menampilkan sisa bon, pinjaman baru, dan pembayaran per bulan.
+     * Laporan pinjaman bulanan - menampilkan sisa, bon bulan lalu, bayar bulan ini, sisa akhir, status.
      */
     public function laporan(Request $request)
     {
@@ -200,34 +200,41 @@ class LoanController extends Controller
 
         $reportMonthName = $monthNames[$month];
 
+        // Hitung bulan sebelumnya
+        if ($month == 1) {
+            $prevMonth = 12;
+            $prevYear = $year - 1;
+        } else {
+            $prevMonth = $month - 1;
+            $prevYear = $year;
+        }
+        $prevMonthName = $monthNames[$prevMonth];
+
         foreach ($employees as $employee) {
             $loans = $employee->loans()->orderBy('loan_date')->get();
 
-            $totalPrincipal = (float) $loans->sum('principal');
-            $totalPaid = (float) $employee->loans->flatMap->payments->sum('amount');
-
-            // Sisa dari bulan sebelumnya (total principal - total pembayaran sampai akhir bulan lalu)
-            $paymentsBeforeMonth = $employee->loans->flatMap->payments
-                ->filter(function ($payment) use ($year, $month) {
+            // Sisa sebelum bulan sebelumnya (sisa sampai akhir bulan -2)
+            $paymentsBeforePrevMonth = $employee->loans->flatMap->payments
+                ->filter(function ($payment) use ($prevYear, $prevMonth) {
                     $payDate = $payment->payment_date;
-                    return $payDate->year < $year || ($payDate->year == $year && $payDate->month < $month);
+                    return $payDate->year < $prevYear || ($payDate->year == $prevYear && $payDate->month < $prevMonth);
                 })
                 ->sum('amount');
 
-            $loansBeforeMonth = $loans->filter(function ($loan) use ($year, $month) {
+            $loansBeforePrevMonth = $loans->filter(function ($loan) use ($prevYear, $prevMonth) {
                 $loanDate = $loan->loan_date;
-                return $loanDate->year < $year || ($loanDate->year == $year && $loanDate->month < $month);
+                return $loanDate->year < $prevYear || ($loanDate->year == $prevYear && $loanDate->month < $prevMonth);
             })->sum('principal');
 
-            $sisaBefore = $loansBeforeMonth - $paymentsBeforeMonth;
+            $sisaBefore = $loansBeforePrevMonth - $paymentsBeforePrevMonth;
 
-            // Pinjaman baru di bulan ini
-            $bonMonth = $loans->filter(function ($loan) use ($year, $month) {
+            // Bon bulan sebelumnya (pinjaman baru di bulan sebelumnya)
+            $bonPrevMonth = $loans->filter(function ($loan) use ($prevYear, $prevMonth) {
                 $loanDate = $loan->loan_date;
-                return $loanDate->year == $year && $loanDate->month == $month;
+                return $loanDate->year == $prevYear && $loanDate->month == $prevMonth;
             })->sum('principal');
 
-            // Pembayaran di bulan ini
+            // Pembayaran di bulan ini (bulan yang di-filter)
             $bayarMonth = $employee->loans->flatMap->payments
                 ->filter(function ($payment) use ($year, $month) {
                     $payDate = $payment->payment_date;
@@ -236,20 +243,20 @@ class LoanController extends Controller
                 ->sum('amount');
 
             // Sisa akhir
-            $sisaAkhir = $sisaBefore + $bonMonth - $bayarMonth;
+            $sisaAkhir = $sisaBefore + $bonPrevMonth - $bayarMonth;
             $status = $sisaAkhir <= 0 ? 'Lunas' : 'Belum Lunas';
 
             $report[] = [
                 'employee_id' => $employee->employee_id,
                 'name' => $employee->name,
                 'sisa_before' => $sisaBefore,
-                'bon_month' => $bonMonth,
+                'bon_prev_month' => $bonPrevMonth,
                 'bayar_month' => $bayarMonth,
                 'sisa_akhir' => max(0, $sisaAkhir),
                 'status' => $status,
             ];
         }
 
-        return view('loans.laporan', compact('report', 'employees', 'year', 'month', 'reportMonthName'));
+        return view('loans.laporan', compact('report', 'employees', 'year', 'month', 'reportMonthName', 'prevMonthName'));
     }
 }
