@@ -36,13 +36,23 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Tipe Izin <span class="text-red-500">*</span></label>
-                <select name="category" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus-border-transparent">
+                <select name="category" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" id="category-select">
                     <option value="">-- Pilih Tipe Izin --</option>
                     <option value="tidak_masuk" {{ old('category') == 'tidak_masuk' ? 'selected' : '' }}>Tidak Masuk</option>
                     <option value="terlambat" {{ old('category') == 'terlambat' ? 'selected' : '' }}>Terlambat</option>
                     <option value="pulang_awal" {{ old('category') == 'pulang_awal' ? 'selected' : '' }}>Pulang Lebih Awal</option>
                 </select>
                 @error('category') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+            </div>
+
+            <div id="late-type-field" class="hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Keterlambatan <span class="text-red-500">*</span></label>
+                <select name="late_type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">-- Pilih Jenis --</option>
+                    <option value="masuk_kerja" {{ old('late_type') == 'masuk_kerja' ? 'selected' : '' }}>Masuk Kerja</option>
+                    <option value="setelah_istirahat" {{ old('late_type') == 'setelah_istirahat' ? 'selected' : '' }}>Setelah Istirahat</option>
+                </select>
+                @error('late_type') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -146,6 +156,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         const employeeSelect = document.querySelector('select[name="employee_id"]');
         const categorySelect = document.querySelector('select[name="category"]');
+        const lateTypeSelect = document.querySelector('select[name="late_type"]');
         const deductionTypeSection = document.getElementById('deduction-type-section');
         const durationField = document.getElementById('duration-field');
         const lateField = document.getElementById('late-field');
@@ -165,6 +176,7 @@
             const selectedOption = employeeSelect.options[employeeSelect.selectedIndex];
             const golonganId = selectedOption ? selectedOption.getAttribute('data-golongan-id') : null;
             const lateMinutes = parseInt(lateMinutesInput.value) || 0;
+            const lateType = lateTypeSelect ? lateTypeSelect.value : 'masuk_kerja';
             
             if (!golonganId || lateMinutes <= 0) {
                 lateFineAmountInput.value = 0;
@@ -174,7 +186,7 @@
             
             const matched = potonganData.find(function(p) {
                 return p.golongan_id == golonganId &&
-                    p.type === 'masuk_kerja' &&
+                    p.type === lateType &&
                     lateMinutes >= p.min_minutes &&
                     (p.max_minutes === null || lateMinutes <= p.max_minutes);
             });
@@ -199,11 +211,25 @@
                 durationField.classList.add('hidden');
                 lateField.classList.remove('hidden');
                 lateFineDisplay.classList.remove('hidden');
+                
+                // Show late type select
+                const lateTypeField = document.getElementById('late-type-field');
+                if (lateTypeField) {
+                    lateTypeField.classList.remove('hidden');
+                }
+                
                 calculateLateFine();
             } else {
                 deductionTypeSection.classList.remove('hidden');
                 lateField.classList.add('hidden');
                 lateFineDisplay.classList.add('hidden');
+                
+                // Hide late type select
+                const lateTypeField = document.getElementById('late-type-field');
+                if (lateTypeField) {
+                    lateTypeField.classList.add('hidden');
+                }
+                
                 lateMinutesInput.value = '';
                 lateFineAmountInput.value = 0;
                 lateFineAmountDisplay.textContent = formatRupiah(0);
@@ -217,6 +243,10 @@
         
         if (categorySelect) {
             categorySelect.addEventListener('change', toggleLateField);
+        }
+        
+        if (lateTypeSelect) {
+            lateTypeSelect.addEventListener('change', calculateLateFine);
         }
         
         if (lateMinutesInput) {

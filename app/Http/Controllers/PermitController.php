@@ -51,6 +51,7 @@ class PermitController extends Controller
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'category' => 'required|in:tidak_masuk,terlambat,pulang_awal',
+            'late_type' => 'nullable|in:masuk_kerja,setelah_istirahat',
             'permit_date' => 'required|date',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
