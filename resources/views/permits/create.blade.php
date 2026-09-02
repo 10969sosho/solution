@@ -88,30 +88,29 @@
                 @error('reason') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Potongan</label>
-                    <div class="space-y-1">
-                        <label class="flex items-center px-3 py-1 rounded border cursor-pointer hover:border-blue-500">
-                            <input type="radio" name="deduction_type" value="no_deduction" {{ old('deduction_type') == 'no_deduction' ? 'checked' : '' }}>
-                            <span>Tanpa Potongan</span>
-                        </label>
-                        <label class="flex items-center px-3 py-1 rounded border cursor-pointer hover:border-blue-500">
-                            <input type="radio" name="deduction_type" value="salary_deduction" {{ old('deduction_type') == 'salary_deduction' ? 'checked' : '' }}>
-                            <span>Potong Gaji</span>
-                        </label>
-                    </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Potongan</label>
+                <div class="space-y-1">
+                    <label class="flex items-center px-3 py-1 rounded border cursor-pointer hover:border-blue-500">
+                        <input type="radio" name="deduction_type" value="no_deduction" {{ old('deduction_type') == 'no_deduction' ? 'checked' : '' }}>
+                        <span class="ml-2">Tanpa Potongan</span>
+                    </label>
+                    <label class="flex items-center px-3 py-1 rounded border cursor-pointer hover:border-blue-500">
+                        <input type="radio" name="deduction_type" value="salary_deduction" {{ old('deduction_type') == 'salary_deduction' ? 'checked' : '' }}>
+                        <span class="ml-2">Potong Gaji</span>
+                    </label>
                 </div>
-                <div id="duration-field" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Durasi Potongan</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <input type="number" name="deduction_hours" value="{{ old('deduction_hours', 0) }}" min="0"
-                            class="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <span>Jam</span>
-                        <input type="number" name="deduction_minutes" value="{{ old('deduction_minutes', 0) }}" min="0"
-                            class="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <span>Menit</span>
-                    </div>
+            </div>
+
+            <div id="duration-field" class="hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Durasi Potongan</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" name="deduction_hours" value="{{ old('deduction_hours', 0) }}" min="0"
+                        class="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <span>Jam</span>
+                    <input type="number" name="deduction_minutes" value="{{ old('deduction_minutes', 0) }}" min="0"
+                        class="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <span>Menit</span>
                 </div>
             </div>
 
