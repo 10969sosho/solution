@@ -26,7 +26,7 @@
                 <select name="employee_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus-border-transparent">
                     <option value="">-- Pilih Karyawan --</option>
                     @foreach($employees as $emp)
-                    <option value="{{ $emp->id }}" data-location="{{ $emp->location }}" data-position="{{ $emp->position }}" {{ old('employee_id') == $emp->id ? 'selected' : '' }}>
+                    <option value="{{ $emp->id }}" data-location="{{ $emp->location }}" data-position="{{ $emp->position }}" data-golongan-id="{{ $emp->golongan_id }}" {{ old('employee_id') == $emp->id ? 'selected' : '' }}>
                         {{ $emp->employee_id }} - {{ $emp->name }}
                     </option>
                     @endforeach
@@ -88,6 +88,22 @@
                 @error('reason') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
+            <div id="late-field" class="hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Menit Terlambat <span class="text-red-500">*</span></label>
+                <input type="number" name="late_minutes" id="late_minutes" value="{{ old('late_minutes') }}" min="1"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Contoh: 15">
+                @error('late_minutes') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+            </div>
+
+            <div id="late-fine-display" class="hidden bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-gray-700">Denda Terlambat:</span>
+                    <span id="late-fine-amount" class="text-lg font-bold text-red-600">Rp 0</span>
+                </div>
+                <input type="hidden" name="late_fine_amount" id="late_fine_amount" value="0">
+            </div>
+
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Potongan</label>
                 <div class="space-y-1">
@@ -129,8 +145,42 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const employeeSelect = document.querySelector('select[name="employee_id"]');
+        const categorySelect = document.querySelector('select[name="category"]');
         const durationField = document.getElementById('duration-field');
+        const lateField = document.getElementById('late-field');
+        const lateFineDisplay = document.getElementById('late-fine-display');
+        const lateMinutesInput = document.getElementById('late_minutes');
+        const lateFineAmountInput = document.getElementById('late_fine_amount');
+        const lateFineAmountDisplay = document.getElementById('late-fine-amount');
         const radios = document.querySelectorAll('input[name="deduction_type"]');
+        
+        const potonganData = @json($potonganTerlamats);
+        
+        function formatRupiah(amount) {
+            return 'Rp ' + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+        
+        function calculateLateFine() {
+            const selectedOption = employeeSelect.options[employeeSelect.selectedIndex];
+            const golonganId = selectedOption ? selectedOption.getAttribute('data-golongan-id') : null;
+            const lateMinutes = parseInt(lateMinutesInput.value) || 0;
+            
+            if (!golonganId || lateMinutes <= 0) {
+                lateFineAmountInput.value = 0;
+                lateFineAmountDisplay.textContent = formatRupiah(0);
+                return;
+            }
+            
+            const matched = potonganData.find(function(p) {
+                return p.golongan_id == golonganId &&
+                    lateMinutes >= p.min_minutes &&
+                    (p.max_minutes === null || lateMinutes <= p.max_minutes);
+            });
+            
+            const fine = matched ? parseInt(matched.amount) : 0;
+            lateFineAmountInput.value = fine;
+            lateFineAmountDisplay.textContent = formatRupiah(fine);
+        }
         
         function toggleDuration() {
             const checked = document.querySelector('input[name="deduction_type"]:checked');
@@ -141,9 +191,31 @@
             }
         }
         
+        function toggleLateField() {
+            if (categorySelect.value === 'terlambat') {
+                lateField.classList.remove('hidden');
+                lateFineDisplay.classList.remove('hidden');
+                calculateLateFine();
+            } else {
+                lateField.classList.add('hidden');
+                lateFineDisplay.classList.add('hidden');
+                lateMinutesInput.value = '';
+                lateFineAmountInput.value = 0;
+                lateFineAmountDisplay.textContent = formatRupiah(0);
+            }
+        }
+        
         radios.forEach(function(radio) {
             radio.addEventListener('change', toggleDuration);
         });
+        
+        if (categorySelect) {
+            categorySelect.addEventListener('change', toggleLateField);
+        }
+        
+        if (lateMinutesInput) {
+            lateMinutesInput.addEventListener('input', calculateLateFine);
+        }
         
         if (employeeSelect) {
             employeeSelect.addEventListener('change', function() {
@@ -157,10 +229,13 @@
                 if (dataPosition) {
                     document.querySelector('input[name="position"]').value = dataPosition;
                 }
+                
+                calculateLateFine();
             });
         }
         
         toggleDuration();
+        toggleLateField();
     });
 </script>
 @endsection

@@ -25,6 +25,8 @@ class Permit extends Model
         'deduction_type',
         'deduction_hours',
         'deduction_minutes',
+        'late_minutes',
+        'late_fine_amount',
     ];
 
     protected $casts = [

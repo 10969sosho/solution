@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\Permit;
+use App\Models\PotonganTerlambat;
 use Illuminate\Http\Request;
 
 class PermitController extends Controller
@@ -33,7 +34,8 @@ class PermitController extends Controller
     public function create()
     {
         $employees = Employee::where('status', 'active')->orderBy('name')->get();
-        return view('permits.create', compact('employees'));
+        $potonganTerlamats = PotonganTerlambat::with('golongan')->get();
+        return view('permits.create', compact('employees', 'potonganTerlamats'));
     }
 
     public function store(Request $request)
@@ -50,6 +52,8 @@ class PermitController extends Controller
             'deduction_type' => 'required|in:no_deduction,salary_deduction',
             'deduction_hours' => 'nullable|integer|min:0',
             'deduction_minutes' => 'nullable|integer|min:0',
+            'late_minutes' => 'nullable|integer|min:1',
+            'late_fine_amount' => 'nullable|numeric|min:0',
         ]);
 
         $duration = $this->durationInMinutes($validated['start_time'], $validated['end_time']);
