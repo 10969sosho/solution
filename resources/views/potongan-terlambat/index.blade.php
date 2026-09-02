@@ -18,7 +18,7 @@
                 <i class="fas fa-clock text-blue-600 mr-2"></i>
                 Daftar Potongan Terlambat
             </h3>
-            <a href="{{ route('potongan-terlamats.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <a href="{{ route('potongan-terlambat.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                 <i class="fas fa-plus mr-2"></i>Tambah Potongan
             </a>
         </div>
@@ -54,10 +54,10 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex space-x-2">
-                                        <a href="{{ route('potongan-terlamats.edit', $potongan) }}" class="text-blue-600 hover:text-blue-800">
+                                        <a href="{{ route('potongan-terlambat.edit', $potongan) }}" class="text-blue-600 hover:text-blue-800">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <form action="{{ route('potongan-terlamats.destroy', $potongan) }}" method="POST" class="inline" onsubmit="return confirm('Yakin hapus potongan ini?')">
+                                        <form action="{{ route('potongan-terlambat.destroy', $potongan) }}" method="POST" class="inline" onsubmit="return confirm('Yakin hapus potongan ini?')">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="text-red-600 hover:text-red-800">

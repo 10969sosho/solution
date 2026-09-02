@@ -15,12 +15,12 @@ class PotonganTerlambatController extends Controller
 
         $grouped = $potongans->groupBy('golongan_type');
 
-        return view('potongan-terlamats.index', compact('potongans', 'grouped'));
+        return view('potongan-terlambat.index', compact('potongans', 'grouped'));
     }
 
     public function create()
     {
-        return view('potongan-terlamats.create');
+        return view('potongan-terlambat.create');
     }
 
     public function store(Request $request)
@@ -34,12 +34,12 @@ class PotonganTerlambatController extends Controller
 
         PotonganTerlambat::create($validated);
 
-        return redirect()->route('potongan-terlamats.index')->with('success', 'Potongan terlambat berhasil ditambahkan');
+        return redirect()->route('potongan-terlambat.index')->with('success', 'Potongan terlambat berhasil ditambahkan');
     }
 
     public function edit(PotonganTerlambat $potongan_terlambat)
     {
-        return view('potongan-terlamats.edit', ['potongan' => $potongan_terlambat]);
+        return view('potongan-terlambat.edit', ['potongan' => $potongan_terlambat]);
     }
 
     public function update(Request $request, PotonganTerlambat $potongan_terlambat)
@@ -53,13 +53,13 @@ class PotonganTerlambatController extends Controller
 
         $potongan_terlambat->update($validated);
 
-        return redirect()->route('potongan-terlamats.index')->with('success', 'Potongan terlambat berhasil diupdate');
+        return redirect()->route('potongan-terlambat.index')->with('success', 'Potongan terlambat berhasil diupdate');
     }
 
     public function destroy(PotonganTerlambat $potongan_terlambat)
     {
         $potongan_terlambat->delete();
 
-        return redirect()->route('potongan-terlamats.index')->with('success', 'Potongan terlambat berhasil dihapus');
+        return redirect()->route('potongan-terlambat.index')->with('success', 'Potongan terlambat berhasil dihapus');
     }
 }

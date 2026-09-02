@@ -78,7 +78,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/gajis', [GajiController::class, 'index'])->name('gajis.index');
     Route::get('/gajis/{employee}/edit', [GajiController::class, 'edit'])->name('gajis.edit');
     Route::put('/gajis/{employee}', [GajiController::class, 'update'])->name('gajis.update');
-    Route::resource('potongan-terlamats', PotonganTerlambatController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+    Route::resource('potongan-terlambat', PotonganTerlambatController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
 
     // Payroll & THR hanya untuk Super Admin / Owner
     Route::middleware(['role:super_admin'])->group(function () {

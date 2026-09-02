@@ -129,7 +129,7 @@
                         <a href="/loans" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('loans') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-hand-holding-usd w-5"></i><span class="ml-3">Pinjaman / Kasbon</span>
                         </a>
-                        <a href="/potongan-terlamats" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('potongan-terlamats*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                        <a href="/potongan-terlambat" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('potongan-terlambat*') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-clock w-5"></i><span class="ml-3">Potongan Terlambat</span>
                         </a>
                         @if(auth()->user()?->canManagePayroll())
