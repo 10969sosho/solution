@@ -174,6 +174,7 @@
             
             const matched = potonganData.find(function(p) {
                 return p.golongan_id == golonganId &&
+                    p.type === 'masuk_kerja' &&
                     lateMinutes >= p.min_minutes &&
                     (p.max_minutes === null || lateMinutes <= p.max_minutes);
             });
