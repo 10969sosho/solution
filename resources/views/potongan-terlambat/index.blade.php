@@ -24,10 +24,10 @@
         </div>
 
         <div class="p-6">
-            @forelse(['gudang_kandang' => 'Gudang & Kandang', 'mandor_admin' => 'Mandor & Admin'] as $type => $label)
+            @forelse($grouped as $golonganId => $items)
             <div class="mb-6 last:mb-0">
                 <h4 class="text-md font-semibold text-gray-700 mb-3">
-                    <i class="fas fa-users text-gray-500 mr-2"></i>{{ $label }}
+                    <i class="fas fa-users text-gray-500 mr-2"></i>{{ $items->first()->golongan->name ?? '-' }}
                 </h4>
                 
                 <div class="overflow-x-auto">
@@ -40,7 +40,7 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200">
-                            @forelse($grouped[$type] ?? [] as $potongan)
+                            @forelse($items as $potongan)
                             <tr class="hover:bg-gray-50">
                                 <td class="px-6 py-4 text-sm text-gray-700">
                                     {{ $potongan->range_label }}

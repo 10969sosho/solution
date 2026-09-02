@@ -143,13 +143,13 @@ class PayrollService
             return 0;
         }
 
-        $golonganType = $employee->golongan?->type;
+        $golonganId = $employee->golongan_id;
 
-        if (! $golonganType) {
+        if (! $golonganId) {
             return 0;
         }
 
-        $potongan = PotonganTerlambat::where('golongan_type', $golonganType)
+        $potongan = PotonganTerlambat::where('golongan_id', $golonganId)
             ->where('min_minutes', '<=', $minutes)
             ->where(function ($query) use ($minutes) {
                 $query->whereNull('max_minutes')

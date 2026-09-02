@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Golongan;
 use App\Models\PotonganTerlambat;
 use Illuminate\Http\Request;
 
@@ -9,24 +10,26 @@ class PotonganTerlambatController extends Controller
 {
     public function index()
     {
-        $potongans = PotonganTerlambat::orderBy('golongan_type')
+        $potongans = PotonganTerlambat::with('golongan')
+            ->orderBy('golongan_id')
             ->orderBy('min_minutes')
             ->get();
 
-        $grouped = $potongans->groupBy('golongan_type');
+        $grouped = $potongans->groupBy('golongan_id');
 
         return view('potongan-terlambat.index', compact('potongans', 'grouped'));
     }
 
     public function create()
     {
-        return view('potongan-terlambat.create');
+        $golongans = Golongan::orderBy('name')->get();
+        return view('potongan-terlambat.create', compact('golongans'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'golongan_type' => 'required|in:gudang_kandang,mandor_admin',
+            'golongan_id' => 'required|exists:golongans,id',
             'min_minutes' => 'required|integer|min:0',
             'max_minutes' => 'nullable|integer|min:0|gte:min_minutes',
             'amount' => 'required|numeric|min:0',
@@ -39,13 +42,14 @@ class PotonganTerlambatController extends Controller
 
     public function edit(PotonganTerlambat $potongan_terlambat)
     {
-        return view('potongan-terlambat.edit', ['potongan' => $potongan_terlambat]);
+        $golongans = Golongan::orderBy('name')->get();
+        return view('potongan-terlambat.edit', ['potongan' => $potongan_terlambat, 'golongans' => $golongans]);
     }
 
     public function update(Request $request, PotonganTerlambat $potongan_terlambat)
     {
         $validated = $request->validate([
-            'golongan_type' => 'required|in:gudang_kandang,mandor_admin',
+            'golongan_id' => 'required|exists:golongans,id',
             'min_minutes' => 'required|integer|min:0',
             'max_minutes' => 'nullable|integer|min:0|gte:min_minutes',
             'amount' => 'required|numeric|min:0',
