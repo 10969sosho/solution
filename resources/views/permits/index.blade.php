@@ -14,7 +14,7 @@
 
     <!-- Filter -->
     <div class="bg-white rounded-xl shadow-sm p-6">
-        <form method="GET" action="{{ route('permits.index') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <form method="GET" action="{{ route('permits.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Karyawan</label>
                 <select name="employee_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
@@ -22,6 +22,15 @@
                     @foreach($employees as $emp)
                     <option value="{{ $emp->id }}" {{ request('employee_id') == $emp->id ? 'selected' : '' }}>{{ $emp->name }}</option>
                     @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipe Izin</label>
+                <select name="category" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="">-- Semua --</option>
+                    <option value="tidak_masuk" {{ request('category') == 'tidak_masuk' ? 'selected' : '' }}>Tidak Masuk</option>
+                    <option value="terlambat" {{ request('category') == 'terlambat' ? 'selected' : '' }}>Terlambat</option>
+                    <option value="pulang_awal" {{ request('category') == 'pulang_awal' ? 'selected' : '' }}>Pulang Lebih Awal</option>
                 </select>
             </div>
             <div>
@@ -58,6 +67,7 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Karyawan</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipe</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Waktu</th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Durasi</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jenis</th>
@@ -71,6 +81,18 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 text-sm font-medium text-gray-800">{{ $permit->employee?->name }}</td>
                         <td class="px-6 py-4 text-sm text-gray-700">{{ $permit->permit_date->format('d M Y') }}</td>
+                        <td class="px-6 py-4">
+                            @if($permit->category)
+                            <span class="px-3 py-1 rounded-full text-xs font-medium
+                                @if($permit->category === 'tidak_masuk') bg-red-100 text-red-800
+                                @elseif($permit->category === 'terlambat') bg-yellow-100 text-yellow-800
+                                @else bg-blue-100 text-blue-800 @endif">
+                                {{ $permit->category === 'tidak_masuk' ? 'Tidak Masuk' : ($permit->category === 'terlambat' ? 'Terlambat' : 'Pulang Awal') }}
+                            </span>
+                            @else
+                            <span class="text-gray-400">-</span>
+                            @endif
+                        </td>
                         <td class="px-6 py-4 text-sm text-gray-700">
                             {{ substr($permit->start_time, 0, 5) }} - {{ substr($permit->end_time, 0, 5) }}
                         </td>
@@ -114,7 +136,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-12 text-center">
+                        <td colspan="9" class="px-6 py-12 text-center">
                             <i class="fas fa-file-contract text-4xl text-gray-300 mb-3"></i>
                             <p class="text-gray-500">Belum ada data izin</p>
                         </td>

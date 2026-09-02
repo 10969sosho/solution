@@ -20,6 +20,10 @@ class PermitController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
         $permits = $query->paginate(25);
         $employees = Employee::where('status', 'active')->orderBy('name')->get();
 
@@ -36,6 +40,7 @@ class PermitController extends Controller
     {
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
+            'category' => 'required|in:tidak_masuk,terlambat,pulang_awal',
             'permit_date' => 'required|date',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
