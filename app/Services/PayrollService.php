@@ -26,12 +26,13 @@ class PayrollService
         $attendance = $this->attendanceService->processMonth($employee, $year, $month);
         $baseSalary = (float) $employee->salary;
 
-        $lateDeduction = $this->calculateLateFine($employee, $attendance['total_late_minutes']);
+        $lateDeduction = $this->calculateLateFine($employee, $attendance['total_late_minutes'], 'masuk_kerja');
+        $lateBreakInDeduction = $this->calculateLateFine($employee, $attendance['total_late_break_in_minutes'], 'setelah_istirahat');
         $loanDeduction = $this->calculateLoanDeduction($employee, $year, $month);
         $absenceDeduction = $this->calculateAbsenceDeduction($employee, $year, $month, $attendance);
         $attendanceBonus = $this->calculateAttendanceBonus($employee, $year, $month);
 
-        $totalDeduction = round($lateDeduction + $loanDeduction + $absenceDeduction, 2);
+        $totalDeduction = round($lateDeduction + $lateBreakInDeduction + $loanDeduction + $absenceDeduction, 2);
         $totalIncentive = round($attendanceBonus, 2);
         $netSalary = round($baseSalary - $totalDeduction + $totalIncentive, 2);
 
@@ -50,6 +51,8 @@ class PayrollService
             'breakdown' => [
                 'total_late_minutes' => $attendance['total_late_minutes'],
                 'days_late' => $attendance['days_late'],
+                'total_late_break_in_minutes' => $attendance['total_late_break_in_minutes'],
+                'days_late_break_in' => $attendance['days_late_break_in'],
                 'days_present' => $attendance['days_present'],
                 'total_work_minutes' => $attendance['total_work_minutes'],
             ],
@@ -137,7 +140,7 @@ class PayrollService
         ];
     }
 
-    private function calculateLateFine(Employee $employee, int $minutes): float
+    private function calculateLateFine(Employee $employee, int $minutes, string $type = 'masuk_kerja'): float
     {
         if ($minutes <= 0) {
             return 0;
@@ -150,7 +153,7 @@ class PayrollService
         }
 
         $potongan = PotonganTerlambat::where('golongan_id', $golonganId)
-            ->where('type', 'masuk_kerja')
+            ->where('type', $type)
             ->where('min_minutes', '<=', $minutes)
             ->where(function ($query) use ($minutes) {
                 $query->whereNull('max_minutes')

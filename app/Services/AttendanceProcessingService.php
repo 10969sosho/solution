@@ -51,6 +51,7 @@ class AttendanceProcessingService
                 'check_out' => null,
             ],
             'late_minutes' => 0,
+            'late_break_in_minutes' => 0,
             'early_leave_minutes' => 0,
             'total_work_minutes' => 0,
             'ignored_scans' => [],
@@ -87,6 +88,12 @@ class AttendanceProcessingService
             }
         }
 
+        if ($checkLocks['break_in']) {
+            if ($checkLocks['break_in']['scan_time']->gt($breakInTime)) {
+                $result['late_break_in_minutes'] = (int) $breakInTime->diffInMinutes($checkLocks['break_in']['scan_time']);
+            }
+        }
+
         $result['total_work_minutes'] = $this->computeWorkMinutes($checkLocks);
 
         return $result;
@@ -108,6 +115,8 @@ class AttendanceProcessingService
             'days_present' => 0,
             'total_late_minutes' => 0,
             'days_late' => 0,
+            'total_late_break_in_minutes' => 0,
+            'days_late_break_in' => 0,
             'total_early_leave_minutes' => 0,
             'total_work_minutes' => 0,
             'daily_details' => [],
@@ -122,6 +131,10 @@ class AttendanceProcessingService
                 $report['total_late_minutes'] += $day['late_minutes'];
                 if ($day['late_minutes'] > 0) {
                     $report['days_late']++;
+                }
+                $report['total_late_break_in_minutes'] += $day['late_break_in_minutes'];
+                if ($day['late_break_in_minutes'] > 0) {
+                    $report['days_late_break_in']++;
                 }
                 $report['total_early_leave_minutes'] += $day['early_leave_minutes'];
                 $report['total_work_minutes'] += $day['total_work_minutes'];
