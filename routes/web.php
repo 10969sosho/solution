@@ -14,6 +14,7 @@ use App\Http\Controllers\JabatanController;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\PermitController;
+use App\Http\Controllers\PotonganTerlambatController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\LokasiController;
 use Illuminate\Support\Facades\Route;
@@ -77,6 +78,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/gajis', [GajiController::class, 'index'])->name('gajis.index');
     Route::get('/gajis/{employee}/edit', [GajiController::class, 'edit'])->name('gajis.edit');
     Route::put('/gajis/{employee}', [GajiController::class, 'update'])->name('gajis.update');
+    Route::resource('potongan-terlamats', PotonganTerlambatController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
 
     // Payroll & THR hanya untuk Super Admin / Owner
     Route::middleware(['role:super_admin'])->group(function () {
