@@ -75,6 +75,9 @@
                         <a href="/lokasis" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('lokasis*') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-map-marker-alt w-5"></i><span class="ml-3">Lokasi</span>
                         </a>
+                        <a href="/gajis" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('gajis*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-money-bill-wave w-5"></i><span class="ml-3">Gaji</span>
+                        </a>
                     </div>
                 </div>
 
@@ -102,8 +105,11 @@
                         <i class="fas fa-chevron-down text-xs transition-transform" :class="{ 'rotate-180': openGroups.reports }"></i>
                     </button>
                     <div x-cloak x-show="openGroups.reports" x-transition class="mt-1 space-y-1">
-                        <a href="/reports/monthly" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('reports/monthly*') ? 'bg-blue-700 shadow-lg' : '' }}">
-                            <i class="fas fa-chart-bar w-5"></i><span class="ml-3">Laporan Bulanan</span>
+                        <a href="/reports/attendance-detail" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('reports/attendance-detail*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-clipboard-list w-5"></i><span class="ml-3">Laporan Absensi Rinci</span>
+                        </a>
+                        <a href="/reports/attendance-summary" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('reports/attendance-summary*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-clipboard-check w-5"></i><span class="ml-3">Laporan Absen Ringkasan</span>
                         </a>
                         <a href="/loans/laporan" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('loans/laporan*') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-file-invoice-dollar w-5"></i><span class="ml-3">Laporan Pinjaman</span>
@@ -125,6 +131,9 @@
                         </a>
                         <a href="/loans" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('loans') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-hand-holding-usd w-5"></i><span class="ml-3">Pinjaman / Kasbon</span>
+                        </a>
+                        <a href="/potongan-terlambat" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('potongan-terlambat*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-clock w-5"></i><span class="ml-3">Potongan Terlambat</span>
                         </a>
                         @if(auth()->user()?->canManagePayroll())
                         <a href="/payrolls" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('payrolls*') ? 'bg-blue-700 shadow-lg' : '' }}">

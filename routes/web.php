@@ -5,6 +5,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\GajiController;
 use App\Http\Controllers\GolonganController;
 use App\Http\Controllers\WorkSettingController;
 use App\Http\Controllers\EmployeeScheduleController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\JabatanController;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\PermitController;
+use App\Http\Controllers\PotonganTerlambatController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\LokasiController;
 use Illuminate\Support\Facades\Route;
@@ -68,11 +70,17 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/reports/monthly', [ReportController::class, 'monthly'])->name('reports.monthly');
     Route::get('/reports/summary', [ReportController::class, 'summary'])->name('reports.summary');
+    Route::get('/reports/attendance-detail', [ReportController::class, 'attendanceDetail'])->name('reports.attendanceDetail');
+    Route::get('/reports/attendance-summary', [ReportController::class, 'attendanceSummary'])->name('reports.attendanceSummary');
 
     // Master data
     Route::resource('golongans', GolonganController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
     Route::resource('jabatans', JabatanController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
     Route::resource('lokasis', LokasiController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+    Route::get('/gajis', [GajiController::class, 'index'])->name('gajis.index');
+    Route::get('/gajis/{employee}/edit', [GajiController::class, 'edit'])->name('gajis.edit');
+    Route::put('/gajis/{employee}', [GajiController::class, 'update'])->name('gajis.update');
+    Route::resource('potongan-terlambat', PotonganTerlambatController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
 
     // Payroll & THR hanya untuk Super Admin / Owner
     Route::middleware(['role:super_admin'])->group(function () {

@@ -26,12 +26,23 @@
                 <select name="employee_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus-border-transparent">
                     <option value="">-- Pilih Karyawan --</option>
                     @foreach($employees as $emp)
-                    <option value="{{ $emp->id }}" data-location="{{ $emp->location }}" data-position="{{ $emp->position }}" {{ old('employee_id') == $emp->id ? 'selected' : '' }}>
+                    <option value="{{ $emp->id }}" data-location="{{ $emp->location }}" data-position="{{ $emp->position }}" data-golongan-id="{{ $emp->golongan_id }}" {{ old('employee_id') == $emp->id ? 'selected' : '' }}>
                         {{ $emp->employee_id }} - {{ $emp->name }}
                     </option>
                     @endforeach
                 </select>
                 @error('employee_id') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipe Izin <span class="text-red-500">*</span></label>
+                <select name="category" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus-border-transparent">
+                    <option value="">-- Pilih Tipe Izin --</option>
+                    <option value="tidak_masuk" {{ old('category') == 'tidak_masuk' ? 'selected' : '' }}>Tidak Masuk</option>
+                    <option value="terlambat" {{ old('category') == 'terlambat' ? 'selected' : '' }}>Terlambat</option>
+                    <option value="pulang_awal" {{ old('category') == 'pulang_awal' ? 'selected' : '' }}>Pulang Lebih Awal</option>
+                </select>
+                @error('category') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -77,40 +88,46 @@
                 @error('reason') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
-            <div>
+            <div id="late-field" class="hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Menit Terlambat <span class="text-red-500">*</span></label>
+                <input type="number" name="late_minutes" id="late_minutes" value="{{ old('late_minutes') }}" min="1"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Contoh: 15">
+                @error('late_minutes') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+            </div>
+
+            <div id="late-fine-display" class="hidden bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-gray-700">Denda Terlambat:</span>
+                    <span id="late-fine-amount" class="text-lg font-bold text-red-600">Rp 0</span>
+                </div>
+                <input type="hidden" name="late_fine_amount" id="late_fine_amount" value="0">
+            </div>
+
+            <div id="deduction-type-section">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Potongan</label>
-                <div class="space-y-2">
-                    <label class="flex items-center px-3 py-2 rounded border cursor-pointer hover:border-blue-500">
-                        <input type="radio" name="deduction_type" value="no_deduction" class="mr-2" {{ old('deduction_type') == 'no_deduction' ? 'checked' : '' }}>
-                        <span>Tanpa Potongan</span>
+                <div class="space-y-1">
+                    <label class="flex items-center px-3 py-1 rounded border cursor-pointer hover:border-blue-500">
+                        <input type="radio" name="deduction_type" value="no_deduction" {{ old('deduction_type') == 'no_deduction' ? 'checked' : '' }}>
+                        <span class="ml-2">Tanpa Potongan</span>
                     </label>
-                    <label class="flex items-center px-3 py-2 rounded border cursor-pointer hover:border-blue-500">
-                        <input type="radio" name="deduction_type" value="salary_deduction" class="mr-2" {{ old('deduction_type') == 'salary_deduction' ? 'checked' : '' }}>
-                        <span>Potong Gaji</span>
+                    <label class="flex items-center px-3 py-1 rounded border cursor-pointer hover:border-blue-500">
+                        <input type="radio" name="deduction_type" value="salary_deduction" {{ old('deduction_type') == 'salary_deduction' ? 'checked' : '' }}>
+                        <span class="ml-2">Potong Gaji</span>
                     </label>
                 </div>
             </div>
 
-            <div id="duration-field" class="hidden bg-red-50 border border-red-200 rounded-lg p-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    <i class="fas fa-clock text-red-500 mr-1"></i>
-                    Durasi Potongan Gaji
-                </label>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1">Jam</label>
-                        <input type="number" name="deduction_hours" id="deduction_hours" value="{{ old('deduction_hours', 0) }}" min="0"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1">Menit</label>
-                        <input type="number" name="deduction_minutes" id="deduction_minutes" value="{{ old('deduction_minutes', 0) }}" min="0" max="59"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent">
-                    </div>
+            <div id="duration-field" class="hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Durasi Potongan</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" name="deduction_hours" value="{{ old('deduction_hours', 0) }}" min="0"
+                        class="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <span>Jam</span>
+                    <input type="number" name="deduction_minutes" value="{{ old('deduction_minutes', 0) }}" min="0"
+                        class="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <span>Menit</span>
                 </div>
-                <p id="deduction-summary" class="mt-3 text-sm font-medium text-red-600">
-                    Potong gaji: 0 jam 0 menit
-                </p>
             </div>
 
             <div class="flex space-x-3 pt-4">
@@ -128,13 +145,83 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const employeeSelect = document.querySelector('select[name="employee_id"]');
+        const categorySelect = document.querySelector('select[name="category"]');
+        const deductionTypeSection = document.getElementById('deduction-type-section');
         const durationField = document.getElementById('duration-field');
-        const deductionTypeRadios = document.querySelectorAll('input[name="deduction_type"]');
-        const deductionHoursInput = document.getElementById('deduction_hours');
-        const deductionMinutesInput = document.getElementById('deduction_minutes');
-        const deductionSummary = document.getElementById('deduction-summary');
-
-        // Auto-fill location and jabatan when employee selected
+        const lateField = document.getElementById('late-field');
+        const lateFineDisplay = document.getElementById('late-fine-display');
+        const lateMinutesInput = document.getElementById('late_minutes');
+        const lateFineAmountInput = document.getElementById('late_fine_amount');
+        const lateFineAmountDisplay = document.getElementById('late-fine-amount');
+        const radios = document.querySelectorAll('input[name="deduction_type"]');
+        
+        const potonganData = @json($potonganTerlamats);
+        
+        function formatRupiah(amount) {
+            return 'Rp ' + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+        
+        function calculateLateFine() {
+            const selectedOption = employeeSelect.options[employeeSelect.selectedIndex];
+            const golonganId = selectedOption ? selectedOption.getAttribute('data-golongan-id') : null;
+            const lateMinutes = parseInt(lateMinutesInput.value) || 0;
+            
+            if (!golonganId || lateMinutes <= 0) {
+                lateFineAmountInput.value = 0;
+                lateFineAmountDisplay.textContent = formatRupiah(0);
+                return;
+            }
+            
+            const matched = potonganData.find(function(p) {
+                return p.golongan_id == golonganId &&
+                    lateMinutes >= p.min_minutes &&
+                    (p.max_minutes === null || lateMinutes <= p.max_minutes);
+            });
+            
+            const fine = matched ? parseInt(matched.amount) : 0;
+            lateFineAmountInput.value = fine;
+            lateFineAmountDisplay.textContent = formatRupiah(fine);
+        }
+        
+        function toggleDuration() {
+            const checked = document.querySelector('input[name="deduction_type"]:checked');
+            if (checked && checked.value === 'salary_deduction') {
+                durationField.classList.remove('hidden');
+            } else {
+                durationField.classList.add('hidden');
+            }
+        }
+        
+        function toggleLateField() {
+            if (categorySelect.value === 'terlambat') {
+                deductionTypeSection.classList.add('hidden');
+                durationField.classList.add('hidden');
+                lateField.classList.remove('hidden');
+                lateFineDisplay.classList.remove('hidden');
+                calculateLateFine();
+            } else {
+                deductionTypeSection.classList.remove('hidden');
+                lateField.classList.add('hidden');
+                lateFineDisplay.classList.add('hidden');
+                lateMinutesInput.value = '';
+                lateFineAmountInput.value = 0;
+                lateFineAmountDisplay.textContent = formatRupiah(0);
+                toggleDuration();
+            }
+        }
+        
+        radios.forEach(function(radio) {
+            radio.addEventListener('change', toggleDuration);
+        });
+        
+        if (categorySelect) {
+            categorySelect.addEventListener('change', toggleLateField);
+        }
+        
+        if (lateMinutesInput) {
+            lateMinutesInput.addEventListener('input', calculateLateFine);
+        }
+        
         if (employeeSelect) {
             employeeSelect.addEventListener('change', function() {
                 const option = this.options[this.selectedIndex];
@@ -147,42 +234,13 @@
                 if (dataPosition) {
                     document.querySelector('input[name="position"]').value = dataPosition;
                 }
+                
+                calculateLateFine();
             });
         }
-
-        // Toggle duration field and update summary
-        function toggleDurationField() {
-            const selectedType = document.querySelector('input[name="deduction_type"]:checked');
-            if (selectedType && selectedType.value === 'salary_deduction') {
-                durationField.classList.remove('hidden');
-                updateSummary();
-            } else {
-                durationField.classList.add('hidden');
-            }
-        }
-
-        // Update "Potong gaji: X jam Y menit" summary text
-        function updateSummary() {
-            const hours = parseInt(deductionHoursInput.value) || 0;
-            const minutes = parseInt(deductionMinutesInput.value) || 0;
-            deductionSummary.textContent = `Potong gaji: ${hours} jam ${minutes} menit`;
-        }
-
-        // Add event listeners to radio buttons
-        deductionTypeRadios.forEach(function(radio) {
-            radio.addEventListener('change', toggleDurationField);
-        });
-
-        // Add event listeners to hours/minutes inputs
-        if (deductionHoursInput) {
-            deductionHoursInput.addEventListener('input', updateSummary);
-        }
-        if (deductionMinutesInput) {
-            deductionMinutesInput.addEventListener('input', updateSummary);
-        }
-
-        // Initial check on page load
-        toggleDurationField();
+        
+        toggleDuration();
+        toggleLateField();
     });
 </script>
 @endsection

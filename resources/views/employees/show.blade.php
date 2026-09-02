@@ -85,19 +85,6 @@
                 </div>
             </div>
 
-            @if(auth()->user()?->isSuperAdmin())
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-500">Gaji Pokok</label>
-                    <p class="mt-1 text-sm text-gray-900">Rp {{ number_format($employee->salary, 0, ',', '.') }}</p>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-500">Tier Gaji</label>
-                    <p class="mt-1 text-sm text-gray-900">{{ $employee->salary_tier ?? '-' }}</p>
-                </div>
-            </div>
-            @endif
-
             @if($employee->address)
             <div>
                 <label class="block text-sm font-medium text-gray-500">Alamat</label>

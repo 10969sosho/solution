@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\Permit;
+use App\Models\PotonganTerlambat;
 use Illuminate\Http\Request;
 
 class PermitController extends Controller
@@ -20,6 +21,18 @@ class PermitController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        if ($request->filled('start_date')) {
+            $query->where('permit_date', '>=', $request->start_date);
+        }
+
+        if ($request->filled('end_date')) {
+            $query->where('permit_date', '<=', $request->end_date);
+        }
+
         $permits = $query->paginate(25);
         $employees = Employee::where('status', 'active')->orderBy('name')->get();
 
@@ -29,13 +42,15 @@ class PermitController extends Controller
     public function create()
     {
         $employees = Employee::where('status', 'active')->orderBy('name')->get();
-        return view('permits.create', compact('employees'));
+        $potonganTerlamats = PotonganTerlambat::with('golongan')->get();
+        return view('permits.create', compact('employees', 'potonganTerlamats'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
+            'category' => 'required|in:tidak_masuk,terlambat,pulang_awal',
             'permit_date' => 'required|date',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
@@ -45,6 +60,8 @@ class PermitController extends Controller
             'deduction_type' => 'required|in:no_deduction,salary_deduction',
             'deduction_hours' => 'nullable|integer|min:0',
             'deduction_minutes' => 'nullable|integer|min:0',
+            'late_minutes' => 'nullable|integer|min:1',
+            'late_fine_amount' => 'nullable|numeric|min:0',
         ]);
 
         $duration = $this->durationInMinutes($validated['start_time'], $validated['end_time']);
