@@ -131,6 +131,20 @@
     document.addEventListener('DOMContentLoaded', function() {
         const employeeSelect = document.querySelector('select[name="employee_id"]');
         const durationField = document.getElementById('duration-field');
+        const radios = document.querySelectorAll('input[name="deduction_type"]');
+        
+        function toggleDuration() {
+            const checked = document.querySelector('input[name="deduction_type"]:checked');
+            if (checked && checked.value === 'salary_deduction') {
+                durationField.classList.remove('hidden');
+            } else {
+                durationField.classList.add('hidden');
+            }
+        }
+        
+        radios.forEach(function(radio) {
+            radio.addEventListener('change', toggleDuration);
+        });
         
         if (employeeSelect) {
             employeeSelect.addEventListener('change', function() {
@@ -144,20 +158,10 @@
                 if (dataPosition) {
                     document.querySelector('input[name="position"]').value = dataPosition;
                 }
-                
-                const deductionType = document.querySelector('input[name="deduction_type"]:checked');
-                if (deductionType && deductionType.value === 'salary_deduction') {
-                    durationField.classList.remove('hidden');
-                } else {
-                    durationField.classList.add('hidden');
-                }
             });
         }
         
-        const initialDeduction = document.querySelector('input[name="deduction_type"]:checked');
-        if (initialDeduction && initialDeduction.value === 'salary_deduction') {
-            durationField.classList.remove('hidden');
-        }
+        toggleDuration();
     });
 </script>
 @endsection
