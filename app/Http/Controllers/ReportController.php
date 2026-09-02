@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\WorkSetting;
+use App\Models\Permit;
 use App\Services\AttendanceProcessingService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class ReportController extends Controller
@@ -95,5 +97,99 @@ class ReportController extends Controller
         }
 
         return view('reports.summary', compact('summary', 'year', 'month', 'location', 'position', 'workSetting'));
+    }
+
+    public function attendanceDetail(Request $request)
+    {
+        $startDate = $request->input('start_date', now()->startOfMonth()->toDateString());
+        $endDate = $request->input('end_date', now()->toDateString());
+        $location = $request->input('location');
+        $position = $request->input('position');
+        $employeeId = $request->input('employee_id');
+
+        $query = Employee::query()
+            ->where('status', 'active')
+            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
+            ->when($location, fn ($q) => $q->where('location', $location))
+            ->when($position, fn ($q) => $q->where('position', $position))
+            ->when($employeeId, fn ($q) => $q->where('id', $employeeId))
+            ->orderBy('name');
+
+        $employees = $query->get();
+
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
+
+        $reportData = [];
+
+        foreach ($employees as $employee) {
+            $dailyDetails = [];
+            $totalWorkMinutes = 0;
+            $totalLateMinutes = 0;
+            $totalEarlyLeaveMinutes = 0;
+
+            for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+                $day = $this->attendanceService->processDay($employee, $date->copy());
+
+                $permits = Permit::where('employee_id', $employee->id)
+                    ->where('permit_date', $date->toDateString())
+                    ->get();
+
+                $izinNoDeduction = $permits->where('type', 'no_deduction')->sum('duration_minutes');
+                $izinSalaryDeduction = $permits->where('type', 'salary_deduction')->sum('duration_minutes');
+                $izinTerlambat = $permits->where('category', 'terlambat')->sum('late_minutes');
+                $izinPulangAwal = $permits->where('category', 'pulang_awal')->sum('duration_minutes');
+
+                $dailyDetails[] = [
+                    'date' => $date->toDateString(),
+                    'check_in' => $day['check_locks']['check_in']
+                        ? $day['check_locks']['check_in']['scan_time']->format('H:i')
+                        : '-',
+                    'check_out' => $day['check_locks']['check_out']
+                        ? $day['check_locks']['check_out']['scan_time']->format('H:i')
+                        : '-',
+                    'break_out' => $day['check_locks']['break_out']
+                        ? $day['check_locks']['break_out']['scan_time']->format('H:i')
+                        : '-',
+                    'break_in' => $day['check_locks']['break_in']
+                        ? $day['check_locks']['break_in']['scan_time']->format('H:i')
+                        : '-',
+                    'work_minutes' => $day['total_work_minutes'],
+                    'late_minutes' => $day['late_minutes'],
+                    'early_leave_minutes' => $day['early_leave_minutes'],
+                    'izin_no_deduction' => $izinNoDeduction,
+                    'izin_salary_deduction' => $izinSalaryDeduction,
+                    'izin_terlambat' => $izinTerlambat,
+                    'izin_pulang_awal' => $izinPulangAwal,
+                ];
+
+                $totalWorkMinutes += $day['total_work_minutes'];
+                $totalLateMinutes += $day['late_minutes'];
+                $totalEarlyLeaveMinutes += $day['early_leave_minutes'];
+            }
+
+            $reportData[] = [
+                'employee' => $employee,
+                'daily_details' => $dailyDetails,
+                'total_work_minutes' => $totalWorkMinutes,
+                'total_late_minutes' => $totalLateMinutes,
+                'total_early_leave_minutes' => $totalEarlyLeaveMinutes,
+            ];
+        }
+
+        $locations = Employee::where('status', 'active')->distinct()->pluck('location')->filter()->values();
+        $positions = Employee::where('status', 'active')->distinct()->pluck('position')->filter()->values();
+
+        return view('reports.attendance-detail', compact(
+            'reportData',
+            'startDate',
+            'endDate',
+            'location',
+            'position',
+            'employeeId',
+            'locations',
+            'positions',
+            'employees'
+        ));
     }
 }
