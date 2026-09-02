@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class PotonganTerlambat extends Model
 {
+    protected $table = 'potongan_terlamats';
     protected $fillable = ['golongan_type', 'min_minutes', 'max_minutes', 'amount'];
 
     public function getGolonganTypeLabelAttribute(): string
