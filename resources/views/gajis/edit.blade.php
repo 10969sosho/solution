@@ -21,9 +21,10 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Gaji Pokok <span class="text-red-500">*</span></label>
-                <input type="number" name="salary" value="{{ old('salary', $employee->salary) }}" step="0.01" min="0" required
+                <input type="text" id="salary" name="salary" value="{{ number_format(old('salary', $employee->salary ?? 0), 0, ',', '.') }}" required
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Contoh: 2000000">
+                    placeholder="Contoh: 2.000.000">
+                <input type="hidden" name="salary" id="salary_hidden" value="{{ old('salary', $employee->salary ?? 0) }}">
                 @error('salary') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
@@ -39,3 +40,27 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    const salaryInput = document.getElementById('salary');
+    const salaryHidden = document.getElementById('salary_hidden');
+
+    salaryInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/[^0-9]/g, '');
+        if (value) {
+            value = parseInt(value);
+            e.target.value = value.toLocaleString('id-ID');
+            salaryHidden.value = value;
+        } else {
+            e.target.value = '';
+            salaryHidden.value = 0;
+        }
+    });
+
+    document.querySelector('form').addEventListener('submit', function(e) {
+        let value = salaryInput.value.replace(/[^0-9]/g, '');
+        salaryHidden.value = value || 0;
+    });
+</script>
+@endpush
