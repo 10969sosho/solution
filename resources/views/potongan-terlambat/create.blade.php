@@ -46,9 +46,10 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Denda (Rp) <span class="text-red-500">*</span></label>
-                <input type="number" name="amount" value="{{ old('amount', 0) }}" required min="0" step="1000"
+                <input type="text" id="amount" name="amount" value="{{ number_format(old('amount', 0), 0, ',', '.') }}" required
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Contoh: 10000">
+                    placeholder="Contoh: 10.000">
+                <input type="hidden" name="amount" id="amount_hidden" value="{{ old('amount', 0) }}">
                 @error('amount') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
@@ -64,3 +65,27 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    const amountInput = document.getElementById('amount');
+    const amountHidden = document.getElementById('amount_hidden');
+
+    amountInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/[^0-9]/g, '');
+        if (value) {
+            value = parseInt(value);
+            e.target.value = value.toLocaleString('id-ID');
+            amountHidden.value = value;
+        } else {
+            e.target.value = '';
+            amountHidden.value = 0;
+        }
+    });
+
+    document.querySelector('form').addEventListener('submit', function(e) {
+        let value = amountInput.value.replace(/[^0-9]/g, '');
+        amountHidden.value = value || 0;
+    });
+</script>
+@endpush
