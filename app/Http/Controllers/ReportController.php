@@ -192,4 +192,76 @@ class ReportController extends Controller
             'employees'
         ));
     }
+
+    public function attendanceSummary(Request $request)
+    {
+        $startDate = $request->input('start_date', now()->startOfMonth()->toDateString());
+        $endDate = $request->input('end_date', now()->toDateString());
+        $location = $request->input('location');
+        $position = $request->input('position');
+        $employeeId = $request->input('employee_id');
+
+        $query = Employee::query()
+            ->where('status', 'active')
+            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
+            ->when($location, fn ($q) => $q->where('location', $location))
+            ->when($position, fn ($q) => $q->where('position', $position))
+            ->when($employeeId, fn ($q) => $q->where('id', $employeeId))
+            ->orderBy('name');
+
+        $employees = $query->get();
+
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
+
+        $summary = [];
+
+        foreach ($employees as $employee) {
+            $totalIzinNoDeduction = 0;
+            $totalIzinSalaryDeduction = 0;
+            $totalIzinTerlambat = 0;
+            $totalIzinPulangAwal = 0;
+            $totalLateMinutes = 0;
+
+            for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+                $day = $this->attendanceService->processDay($employee, $date->copy());
+
+                $permits = Permit::where('employee_id', $employee->id)
+                    ->where('permit_date', $date->toDateString())
+                    ->get();
+
+                $totalIzinNoDeduction += $permits->where('type', 'no_deduction')->sum('duration_minutes');
+                $totalIzinSalaryDeduction += $permits->where('type', 'salary_deduction')->sum('duration_minutes');
+                $totalIzinTerlambat += $permits->where('category', 'terlambat')->sum('late_minutes');
+                $totalIzinPulangAwal += $permits->where('category', 'pulang_awal')->sum('duration_minutes');
+                $totalLateMinutes += $day['late_minutes'];
+            }
+
+            $summary[] = [
+                'employee' => $employee,
+                'total_izin_no_deduction' => $totalIzinNoDeduction,
+                'total_izin_salary_deduction' => $totalIzinSalaryDeduction,
+                'total_izin_terlambat' => $totalIzinTerlambat,
+                'total_izin_pulang_awal' => $totalIzinPulangAwal,
+                'total_late_minutes' => $totalLateMinutes,
+                'total_terlambat_dengan_izin' => $totalIzinTerlambat,
+                'total_terlambat_potong_gaji' => $totalLateMinutes,
+            ];
+        }
+
+        $locations = Employee::where('status', 'active')->distinct()->pluck('location')->filter()->values();
+        $positions = Employee::where('status', 'active')->distinct()->pluck('position')->filter()->values();
+
+        return view('reports.attendance-summary', compact(
+            'summary',
+            'startDate',
+            'endDate',
+            'location',
+            'position',
+            'employeeId',
+            'locations',
+            'positions',
+            'employees'
+        ));
+    }
 }

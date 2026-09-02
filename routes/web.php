@@ -71,6 +71,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/reports/monthly', [ReportController::class, 'monthly'])->name('reports.monthly');
     Route::get('/reports/summary', [ReportController::class, 'summary'])->name('reports.summary');
     Route::get('/reports/attendance-detail', [ReportController::class, 'attendanceDetail'])->name('reports.attendanceDetail');
+    Route::get('/reports/attendance-summary', [ReportController::class, 'attendanceSummary'])->name('reports.attendanceSummary');
 
     // Master data
     Route::resource('golongans', GolonganController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);

@@ -108,6 +108,9 @@
                         <a href="/reports/attendance-detail" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('reports/attendance-detail*') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-clipboard-list w-5"></i><span class="ml-3">Laporan Absensi Rinci</span>
                         </a>
+                        <a href="/reports/attendance-summary" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('reports/attendance-summary*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-clipboard-check w-5"></i><span class="ml-3">Laporan Absen Ringkasan</span>
+                        </a>
                         <a href="/loans/laporan" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('loans/laporan*') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-file-invoice-dollar w-5"></i><span class="ml-3">Laporan Pinjaman</span>
                         </a>
