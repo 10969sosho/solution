@@ -74,7 +74,9 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('golongans', GolonganController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
     Route::resource('jabatans', JabatanController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
     Route::resource('lokasis', LokasiController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
-    Route::resource('gajis', GajiController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+    Route::get('/gajis', [GajiController::class, 'index'])->name('gajis.index');
+    Route::get('/gajis/{employee}/edit', [GajiController::class, 'edit'])->name('gajis.edit');
+    Route::put('/gajis/{employee}', [GajiController::class, 'update'])->name('gajis.update');
 
     // Payroll & THR hanya untuk Super Admin / Owner
     Route::middleware(['role:super_admin'])->group(function () {

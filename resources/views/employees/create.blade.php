@@ -105,16 +105,19 @@
             </div>
 
             @if(auth()->user()?->isSuperAdmin())
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Gaji Pokok</label>
-                <select name="gaji_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <option value="">-- Pilih Gaji --</option>
-                    @foreach($gajis as $gaji)
-                    <option value="{{ $gaji->id }}" {{ old('gaji_id') == $gaji->id ? 'selected' : '' }}>
-                        {{ $gaji->name }} - Rp {{ number_format($gaji->amount, 0, ',', '.') }}
-                    </option>
-                    @endforeach
-                </select>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Gaji Pokok</label>
+                    <input type="number" name="salary" value="{{ old('salary') }}" step="0.01" min="0"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Contoh: 2000000">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tier Gaji</label>
+                    <input type="text" name="salary_tier" value="{{ old('salary_tier') }}"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Contoh: A / B / C">
+                </div>
             </div>
             @endif
 

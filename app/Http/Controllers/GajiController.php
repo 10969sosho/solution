@@ -2,55 +2,34 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Gaji;
+use App\Models\Employee;
 use Illuminate\Http\Request;
 
 class GajiController extends Controller
 {
     public function index()
     {
-        $gajis = Gaji::orderBy('name')->get();
-        return view('gajis.index', compact('gajis'));
+        $employees = Employee::where('status', 'active')
+            ->orderBy('name')
+            ->get();
+
+        return view('gajis.index', compact('employees'));
     }
 
-    public function create()
+    public function edit(Employee $employee)
     {
-        return view('gajis.create');
+        return view('gajis.edit', compact('employee'));
     }
 
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0',
-        ]);
-
-        Gaji::create($validated);
-
-        return redirect()->route('gajis.index')->with('success', 'Gaji berhasil ditambahkan');
-    }
-
-    public function edit(Gaji $gaji)
-    {
-        return view('gajis.edit', compact('gaji'));
-    }
-
-    public function update(Request $request, Gaji $gaji)
+    public function update(Request $request, Employee $employee)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0',
+            'salary' => 'required|numeric|min:0',
+            'salary_tier' => 'nullable|string|max:50',
         ]);
 
-        $gaji->update($validated);
+        $employee->update($validated);
 
-        return redirect()->route('gajis.index')->with('success', 'Gaji berhasil diupdate');
-    }
-
-    public function destroy(Gaji $gaji)
-    {
-        $gaji->delete();
-
-        return redirect()->route('gajis.index')->with('success', 'Gaji berhasil dihapus');
+        return redirect()->route('gajis.index')->with('success', 'Gaji ' . $employee->name . ' berhasil diupdate');
     }
 }

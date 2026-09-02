@@ -2,7 +2,7 @@
 
 @section('title', 'Master Gaji - ADMS')
 @section('page-title', 'Master Gaji')
-@section('page-subtitle', 'Data gaji pokok karyawan')
+@section('page-subtitle', 'Kelola gaji pokok karyawan')
 
 @section('content')
 <div class="space-y-6">
@@ -13,14 +13,11 @@
     @endif
 
     <div class="bg-white rounded-xl shadow-sm">
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <div class="px-6 py-4 border-b border-gray-200">
             <h3 class="text-lg font-semibold text-gray-800">
                 <i class="fas fa-money-bill-wave text-blue-600 mr-2"></i>
-                Daftar Gaji
+                Daftar Gaji Karyawan
             </h3>
-            <a href="{{ route('gajis.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                <i class="fas fa-plus mr-2"></i>Tambah Gaji
-            </a>
         </div>
 
         <div class="overflow-x-auto">
@@ -28,35 +25,37 @@
                 <thead class="bg-gray-50 border-b border-gray-200">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Nominal</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jabatan</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Gaji Pokok</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Tier</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
-                    @forelse($gajis as $gaji)
+                    @forelse($employees as $employee)
                     <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 text-sm text-gray-700">{{ $gaji->name }}</td>
-                        <td class="px-6 py-4 text-right text-sm text-gray-700">Rp {{ number_format($gaji->amount, 0, ',', '.') }}</td>
                         <td class="px-6 py-4">
-                            <div class="flex space-x-2">
-                                <a href="{{ route('gajis.edit', $gaji) }}" class="text-blue-600 hover:text-blue-800">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form action="{{ route('gajis.destroy', $gaji) }}" method="POST" class="inline" onsubmit="return confirm('Yakin hapus gaji ini?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-800">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
+                            <div class="text-sm font-medium text-gray-800">{{ $employee->name }}</div>
+                            <div class="text-xs text-gray-500">{{ $employee->employee_id }}</div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-700">{{ $employee->jabatan?->name ?? '-' }}</td>
+                        <td class="px-6 py-4 text-right text-sm font-medium text-gray-800">
+                            Rp {{ number_format($employee->salary ?? 0, 0, ',', '.') }}
+                        </td>
+                        <td class="px-6 py-4 text-center text-sm text-gray-700">
+                            {{ $employee->salary_tier ?? '-' }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <a href="{{ route('gajis.edit', $employee) }}" class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-edit"></i>
+                            </a>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="3" class="px-6 py-12 text-center">
+                        <td colspan="5" class="px-6 py-12 text-center">
                             <i class="fas fa-money-bill-wave text-4xl text-gray-300 mb-3"></i>
-                            <p class="text-gray-500">Belum ada data gaji</p>
+                            <p class="text-gray-500">Belum ada data karyawan</p>
                         </td>
                     </tr>
                     @endforelse
