@@ -33,7 +33,7 @@ class WorkSettingController extends Controller
         $validated = Validator::make($data, [
             'name' => 'required|string|max:255',
             'day' => 'nullable|array',
-            'day.*' => 'in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu',
+            'day.*' => 'in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu',
             'golongan_id' => 'nullable|exists:golongans,id',
             'check_in_time' => 'required',
             'check_out_time' => 'required',
@@ -73,7 +73,7 @@ class WorkSettingController extends Controller
         $validated = Validator::make($data, [
             'name' => 'required|string|max:255',
             'day' => 'nullable|array',
-            'day.*' => 'in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu',
+            'day.*' => 'in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu',
             'golongan_id' => 'nullable|exists:golongans,id',
             'check_in_time' => 'required',
             'check_out_time' => 'required',

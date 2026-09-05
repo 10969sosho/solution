@@ -46,8 +46,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Golongan</label>
-                    <select name="golongan_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Golongan <span class="text-red-500">*</span></label>
+                    <select name="golongan_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         <option value="">-- Pilih Golongan --</option>
                         @foreach($golongans as $golongan)
                         <option value="{{ $golongan->id }}" {{ old('golongan_id') == $golongan->id ? 'selected' : '' }}>
@@ -55,6 +55,7 @@
                         </option>
                         @endforeach
                     </select>
+                    <p class="text-xs text-gray-500 mt-1">Golongan menentukan jam masuk & potongan</p>
                 </div>
             </div>
 
@@ -70,45 +71,41 @@
                 </select>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">No. Telepon</label>
-                <input type="text" name="phone" value="{{ old('phone') }}"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="08xxxxxxxxxx">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">No. Telepon</label>
+                    <input type="text" name="phone" value="{{ old('phone') }}"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="08xxxxxxxxxx">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" name="email" value="{{ old('email') }}"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="email@contoh.com">
+                </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Bergabung</label>
-                <input type="date" name="join_date" value="{{ old('join_date') }}"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Status <span class="text-red-500">*</span></label>
-                <select name="status" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <option value="active">Aktif</option>
-                    <option value="inactive">Nonaktif</option>
-                    <option value="resigned">Resign</option>
-                </select>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Bergabung <span class="text-red-500">*</span></label>
+                    <input type="date" name="join_date" value="{{ old('join_date') }}" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status <span class="text-red-500">*</span></label>
+                    <select name="status" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="active">Aktif</option>
+                        <option value="inactive">Nonaktif</option>
+                        <option value="resigned">Resign</option>
+                    </select>
+                </div>
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Keluar</label>
                 <input type="date" name="tanggal_keluar" value="{{ old('tanggal_keluar') }}"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Jam Masuk Normal</label>
-                <input type="time" name="jam_masuk_normal" value="{{ old('jam_masuk_normal') }}"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
-                <textarea name="address" rows="3"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Alamat lengkap">{{ old('address') }}</textarea>
             </div>
 
             <div class="flex space-x-3 pt-4">

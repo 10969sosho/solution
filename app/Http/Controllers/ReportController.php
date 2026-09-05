@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\WorkSetting;
 use App\Models\Permit;
+use App\Models\PotonganTerlambat;
 use App\Services\AttendanceProcessingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -179,6 +180,7 @@ class ReportController extends Controller
 
         $locations = Employee::where('status', 'active')->distinct()->pluck('location')->filter()->values();
         $positions = Employee::where('status', 'active')->distinct()->pluck('position')->filter()->values();
+        $potonganTerlamats = PotonganTerlambat::with('golongan')->get();
 
         return view('reports.attendance-detail', compact(
             'reportData',
@@ -189,7 +191,8 @@ class ReportController extends Controller
             'employeeId',
             'locations',
             'positions',
-            'employees'
+            'employees',
+            'potonganTerlamats'
         ));
     }
 

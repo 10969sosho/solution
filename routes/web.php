@@ -55,6 +55,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/permits', [PermitController::class, 'index'])->name('permits.index');
     Route::get('/permits/create', [PermitController::class, 'create'])->name('permits.create');
     Route::post('/permits', [PermitController::class, 'store'])->name('permits.store');
+    Route::post('/permits/bulk', [PermitController::class, 'storeBulk'])->name('permits.storeBulk');
     Route::patch('/permits/{permit}/status', [PermitController::class, 'updateStatus'])->name('permits.status');
     Route::delete('/permits/{permit}', [PermitController::class, 'destroy'])->name('permits.destroy');
 

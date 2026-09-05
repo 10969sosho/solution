@@ -10,14 +10,47 @@ use Illuminate\Http\Request;
 
 class EmployeeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $employees = Employee::with('lokasi')
-            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $this->operationalScope($q))
-            ->orderBy('employee_id')
-            ->get();
+        $query = Employee::with(['lokasi', 'golongan', 'jabatan'])
+            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $this->operationalScope($q));
 
-        return view('employees.index', compact('employees'));
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('employee_id', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('jabatan_id')) {
+            $query->where('jabatan_id', $request->jabatan_id);
+        }
+
+        if ($request->filled('golongan_id')) {
+            $query->where('golongan_id', $request->golongan_id);
+        }
+
+        if ($request->filled('lokasi_id')) {
+            $query->where('lokasi_id', $request->lokasi_id);
+        }
+
+        if ($request->filled('join_date_from')) {
+            $query->where('join_date', '>=', $request->join_date_from);
+        }
+
+        if ($request->filled('join_date_to')) {
+            $query->where('join_date', '<=', $request->join_date_to);
+        }
+
+        $employees = $query->orderBy('employee_id')->paginate(25);
+
+        $jabatans = Jabatan::orderBy('name')->get();
+        $golongans = Golongan::orderBy('name')->get();
+        $lokasis = Lokasi::orderBy('name')->get();
+
+        return view('employees.index', compact('employees', 'jabatans', 'golongans', 'lokasis'));
     }
 
     public function create()
@@ -44,15 +77,9 @@ class EmployeeController extends Controller
             'join_date' => 'nullable|date',
             'status' => 'required|in:active,inactive,resigned',
             'tanggal_keluar' => 'nullable|date',
-            'jam_masuk_normal' => 'nullable|string',
             'salary' => 'nullable|numeric|min:0',
             'salary_tier' => 'nullable|string|max:50',
-            'address' => 'nullable|string',
         ]);
-
-        if (isset($validated['jam_masuk_normal']) && $validated['jam_masuk_normal']) {
-            $validated['jam_masuk_normal'] = substr($validated['jam_masuk_normal'], 0, 5);
-        }
 
         if (! auth()->user()->isSuperAdmin()) {
             $this->ensureOperationalPosition($validated);
@@ -100,15 +127,9 @@ class EmployeeController extends Controller
             'join_date' => 'nullable|date',
             'status' => 'required|in:active,inactive,resigned',
             'tanggal_keluar' => 'nullable|date',
-            'jam_masuk_normal' => 'nullable|string',
             'salary' => 'nullable|numeric|min:0',
             'salary_tier' => 'nullable|string|max:50',
-            'address' => 'nullable|string',
         ]);
-
-        if (isset($validated['jam_masuk_normal']) && $validated['jam_masuk_normal']) {
-            $validated['jam_masuk_normal'] = substr($validated['jam_masuk_normal'], 0, 5);
-        }
 
         if (! auth()->user()->isSuperAdmin()) {
             $this->ensureOperationalPosition($validated);

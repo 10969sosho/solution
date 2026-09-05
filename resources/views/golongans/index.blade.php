@@ -2,7 +2,7 @@
 
 @section('title', 'Master Golongan - ADMS')
 @section('page-title', 'Master Golongan')
-@section('page-subtitle', 'Data golongan karyawan')
+@section('page-subtitle', 'Golongan menentukan jam masuk & potongan terlambat karyawan')
 
 @section('content')
 <div class="space-y-6">
@@ -12,10 +12,17 @@
     </div>
     @endif
 
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p class="text-sm text-blue-800">
+            <i class="fas fa-info-circle mr-1"></i>
+            <strong>Keterangan:</strong> Golongan digunakan untuk menentukan jam masuk, jam pulang, dan aturan potongan terlambat karyawan. Setiap karyawan wajib memiliki golongan.
+        </p>
+    </div>
+
     <div class="bg-white rounded-xl shadow-sm">
         <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h3 class="text-lg font-semibold text-gray-800">
-                <i class="fas fa-list text-blue-600 mr-2"></i>
+                <i class="fas fa-layer-group text-blue-600 mr-2"></i>
                 Daftar Golongan
             </h3>
             <a href="{{ route('golongans.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
@@ -27,25 +34,33 @@
             <table class="w-full">
                 <thead class="bg-gray-50 border-b border-gray-200">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipe</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Golongan</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Keterangan</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Jml Karyawan</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @forelse($golongans as $golongan)
                     <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 text-sm text-gray-700">{{ $golongan->name }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-700">{{ $golongan->type_label }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ $loop->iteration }}</td>
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-gray-800">{{ $golongan->name }}</div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">{{ $golongan->description ?? '-' }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">{{ $golongan->employees_count ?? $golongan->employees()->count() }}</span>
+                        </td>
                         <td class="px-6 py-4">
                             <div class="flex space-x-2">
-                                <a href="{{ route('golongans.edit', $golongan) }}" class="text-blue-600 hover:text-blue-800">
+                                <a href="{{ route('golongans.edit', $golongan) }}" class="text-blue-600 hover:text-blue-800" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <form action="{{ route('golongans.destroy', $golongan) }}" method="POST" class="inline" onsubmit="return confirm('Yakin hapus golongan ini?')">
+                                <form action="{{ route('golongans.destroy', $golongan) }}" method="POST" class="inline" onsubmit="return confirm('Yakin hapus golongan ini? Data karyawan dengan golongan ini tidak akan terpengaruh.')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-800">
+                                    <button type="submit" class="text-red-600 hover:text-red-800" title="Hapus">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
@@ -54,8 +69,8 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="3" class="px-6 py-12 text-center">
-                            <i class="fas fa-list text-4xl text-gray-300 mb-3"></i>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <i class="fas fa-layer-group text-4xl text-gray-300 mb-3"></i>
                             <p class="text-gray-500">Belum ada data golongan</p>
                         </td>
                     </tr>
