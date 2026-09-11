@@ -26,12 +26,35 @@
             </div>
 
             <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipe Golongan / Kategori Aturan</label>
+                <select name="type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">-- Pilih Kategori --</option>
+                    <option value="mandor_admin" {{ old('type') === 'mandor_admin' ? 'selected' : '' }}>Admin &amp; Mandor (Jatah Libur: 2 Hari)</option>
+                    <option value="gudang_kandang" {{ old('type') === 'gudang_kandang' ? 'selected' : '' }}>Gudang &amp; Kandang / AGK (Jatah Libur: 1 Hari)</option>
+                </select>
+                @error('type') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+            </div>
+
+            <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
                 <textarea name="description" rows="3"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Contoh: Golongan untuk staff admin kantor, jam kerja 08:00-17:00">{{ old('description') }}</textarea>
                 <p class="text-xs text-gray-500 mt-1">Keterangan tentang golongan ini (jam kerja, aturan, dll)</p>
                 @error('description') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+            </div>
+
+            <!-- MODUL 8: Golongan Khusus (Owner Only) -->
+            <div class="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="is_confidential" value="1" {{ old('is_confidential') ? 'checked' : '' }} class="rounded border-purple-300 text-purple-600 shadow-sm focus:ring-purple-500 w-4 h-4">
+                    <span class="ml-2.5 text-sm text-purple-900 font-bold">
+                        <i class="fas fa-user-shield mr-1"></i> Golongan Khusus (Owner Only)
+                    </span>
+                </label>
+                <p class="text-xs text-purple-700 mt-1 pl-6.5 leading-relaxed">
+                    Jika dicentang, seluruh karyawan di bawah golongan ini informasi gajinya bersifat rahasia dan hanya dapat dilihat serta dikelola oleh Owner / Super Admin.
+                </p>
             </div>
 
             <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">

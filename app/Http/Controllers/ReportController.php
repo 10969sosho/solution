@@ -267,4 +267,59 @@ class ReportController extends Controller
             'employees'
         ));
     }
+
+    /**
+     * MODUL 7: Laporan Tahunan
+     * Fokus utama: Pencatatan hari libur karyawan per periode 6 bulan:
+     * - Semester 1: Januari - Juni
+     * - Semester 2: Juli - Desember
+     */
+    public function yearly(Request $request)
+    {
+        $year = (int) $request->input('year', now()->year);
+        $location = $request->input('location');
+        $position = $request->input('position');
+
+        $query = Employee::query()
+            ->where('status', 'active')
+            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
+            ->when($location, fn ($q) => $q->where('location', $location))
+            ->when($position, fn ($q) => $q->where('position', $position))
+            ->orderBy('name');
+
+        $employees = $query->get();
+
+        $sem1Start = Carbon::create($year, 1, 1)->startOfDay();
+        $sem1End = Carbon::create($year, 6, 30)->endOfDay();
+        $sem2Start = Carbon::create($year, 7, 1)->startOfDay();
+        $sem2End = Carbon::create($year, 12, 31)->endOfDay();
+
+        $reportData = [];
+
+        foreach ($employees as $employee) {
+            // Cek di DailyAttendance
+            $sem1Dailies = \App\Models\DailyAttendance::where('employee_id', $employee->id)
+                ->whereBetween('date', [$sem1Start->toDateString(), $sem1End->toDateString()])
+                ->where('keterangan', 'libur')
+                ->count();
+
+            $sem2Dailies = \App\Models\DailyAttendance::where('employee_id', $employee->id)
+                ->whereBetween('date', [$sem2Start->toDateString(), $sem2End->toDateString()])
+                ->where('keterangan', 'libur')
+                ->count();
+
+            $reportData[] = [
+                'employee' => $employee,
+                'sem1_libur' => $sem1Dailies,
+                'sem2_libur' => $sem2Dailies,
+                'total_libur' => $sem1Dailies + $sem2Dailies,
+                'leave_quota_yearly' => $employee->getEffectiveLeaveQuota() * 12,
+            ];
+        }
+
+        $locations = Employee::where('status', 'active')->distinct()->pluck('location')->filter()->values();
+        $positions = Employee::where('status', 'active')->distinct()->pluck('position')->filter()->values();
+
+        return view('reports.yearly', compact('reportData', 'year', 'location', 'positions', 'locations'));
+    }
 }

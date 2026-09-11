@@ -108,6 +108,56 @@
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
 
+            <!-- MODUL 9 & 10: Rekening & Jatah Libur Karyawan -->
+            <div class="border-t border-gray-200 pt-4 mt-2">
+                <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center">
+                    <i class="fas fa-university text-blue-600 mr-2"></i> Rekening &amp; Ketentuan Khusus
+                </h3>
+
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Metode Pembayaran Gaji <span class="text-red-500">*</span></label>
+                        <select name="payment_method" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="transfer" {{ old('payment_method') === 'transfer' ? 'selected' : '' }}>Transfer Bank</option>
+                            <option value="cash" {{ old('payment_method') === 'cash' ? 'selected' : '' }}>Tunai (Cash)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama Bank</label>
+                        <input type="text" name="bank_name" value="{{ old('bank_name') }}" placeholder="Contoh: BCA / Mandiri / BRI"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nomor Rekening</label>
+                        <input type="text" name="account_number" value="{{ old('account_number') }}" placeholder="Contoh: 1234567890"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama Pemilik Rekening</label>
+                        <input type="text" name="account_holder" value="{{ old('account_holder') }}" placeholder="Sesuai buku tabungan"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Jatah Libur Bulanan (Hari)</label>
+                        <input type="number" name="leave_quota" value="{{ old('leave_quota') }}" placeholder="Default: Admin/Mandor=2, AGK=1" min="0" max="31"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <p class="text-[11px] text-gray-500 mt-1">Biarkan kosong untuk mengikuti aturan standar otomatis.</p>
+                    </div>
+                    <div class="flex items-center pt-6">
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="is_night_guard" value="1" {{ old('is_night_guard') ? 'checked' : '' }} class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500 w-4 h-4">
+                            <span class="ml-2 text-sm text-gray-700 font-medium">Petugas Jaga Malam (Mendapat Uang Jaga Malam)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex space-x-3 pt-4">
                 <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                     <i class="fas fa-save mr-2"></i>Simpan

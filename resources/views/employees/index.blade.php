@@ -96,7 +96,8 @@
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jabatan</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Golongan</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lokasi</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tgl Gabung</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pembayaran</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Jatah Libur</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                     </tr>
@@ -108,6 +109,9 @@
                         <td class="px-4 py-3">
                             <div class="font-medium text-gray-800">{{ $employee->name }}</div>
                             <div class="text-xs text-gray-500">{{ $employee->email }}</div>
+                            @if($employee->isConfidential())
+                                <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-purple-100 text-purple-700">Owner Only</span>
+                            @endif
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-700">{{ $employee->jabatan->name ?? '-' }}</td>
                         <td class="px-4 py-3">
@@ -120,7 +124,20 @@
                         <td class="px-4 py-3">
                             <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">{{ $employee->lokasi->name ?? '-' }}</span>
                         </td>
-                        <td class="px-4 py-3 text-sm text-gray-700">{{ $employee->join_date ? $employee->join_date->format('d/m/Y') : '-' }}</td>
+                        <td class="px-4 py-3 text-xs">
+                            @if(strtolower($employee->payment_method) === 'cash')
+                                <span class="font-bold text-amber-700">Tunai</span>
+                            @else
+                                <span class="font-medium text-blue-700">{{ $employee->bank_name ?? 'Bank' }}</span>
+                                <div class="text-[10px] text-gray-500">{{ $employee->account_number ?? '-' }}</div>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 text-center text-xs font-bold text-gray-700">
+                            {{ $employee->getEffectiveLeaveQuota() }} hr/bln
+                            @if($employee->is_night_guard)
+                                <span class="block text-[9px] text-indigo-600 font-semibold">(Jaga Malam)</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-3">
                             <span class="px-3 py-1 rounded-full text-xs font-medium
                                 @if($employee->status === 'active') bg-green-100 text-green-800

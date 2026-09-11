@@ -6,7 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Golongan extends Model
 {
-    protected $fillable = ['name', 'description', 'type'];
+    protected $fillable = ['name', 'description', 'type', 'is_confidential'];
+
+    protected $casts = [
+        'is_confidential' => 'boolean',
+    ];
 
     public function employees()
     {

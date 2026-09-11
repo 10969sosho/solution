@@ -22,8 +22,12 @@ class GolonganController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'type' => 'nullable|in:gudang_kandang,mandor_admin',
             'description' => 'nullable|string|max:500',
+            'is_confidential' => 'nullable|boolean',
         ]);
+
+        $validated['is_confidential'] = $request->has('is_confidential');
 
         Golongan::create($validated);
 
@@ -39,8 +43,12 @@ class GolonganController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'type' => 'nullable|in:gudang_kandang,mandor_admin',
             'description' => 'nullable|string|max:500',
+            'is_confidential' => 'nullable|boolean',
         ]);
+
+        $validated['is_confidential'] = $request->has('is_confidential');
 
         $golongan->update($validated);
 

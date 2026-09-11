@@ -50,6 +50,12 @@ Route::middleware(['auth'])->group(function () {
 
     Route::prefix('attendance')->group(function () {
         Route::get('/latest', [AttendanceController::class, 'latest']);
+        Route::get('/compilation', [\App\Http\Controllers\AttendanceDailyController::class, 'compilation'])->name('attendance.compilation');
+        Route::get('/daily', [\App\Http\Controllers\AttendanceDailyController::class, 'daily'])->name('attendance.daily');
+        Route::post('/daily/{daily}/save', [\App\Http\Controllers\AttendanceDailyController::class, 'saveRow'])->name('attendance.daily.save');
+        Route::post('/daily/status', [\App\Http\Controllers\AttendanceDailyController::class, 'updateStatus'])->name('attendance.daily.status');
+        Route::get('/employee-detail', [\App\Http\Controllers\AttendanceDailyController::class, 'employeeDetail'])->name('attendance.employee-detail');
+        Route::get('/monthly-recap', [\App\Http\Controllers\AttendanceDailyController::class, 'monthlyRecap'])->name('attendance.monthly-recap');
     });
 
     Route::get('/permits', [PermitController::class, 'index'])->name('permits.index');
@@ -73,6 +79,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/reports/summary', [ReportController::class, 'summary'])->name('reports.summary');
     Route::get('/reports/attendance-detail', [ReportController::class, 'attendanceDetail'])->name('reports.attendanceDetail');
     Route::get('/reports/attendance-summary', [ReportController::class, 'attendanceSummary'])->name('reports.attendanceSummary');
+    Route::get('/reports/yearly', [ReportController::class, 'yearly'])->name('reports.yearly');
 
     // Master data
     Route::resource('golongans', GolonganController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
@@ -87,6 +94,7 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['role:super_admin'])->group(function () {
         Route::get('/payrolls', [PayrollController::class, 'index'])->name('payrolls.index');
         Route::post('/payrolls/generate', [PayrollController::class, 'generate'])->name('payrolls.generate');
+        Route::post('/payrolls/{payroll}/loan', [PayrollController::class, 'updateLoan'])->name('payrolls.updateLoan');
         Route::get('/payrolls/thr', [PayrollController::class, 'thr'])->name('payrolls.thr');
         Route::get('/payrolls/{payroll}', [PayrollController::class, 'show'])->name('payrolls.show');
         Route::post('/payrolls/{payroll}/paid', [PayrollController::class, 'markPaid'])->name('payrolls.paid');

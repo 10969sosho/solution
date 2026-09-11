@@ -70,6 +70,7 @@ class EmployeeController extends Controller
             'jabatan_id' => 'nullable|exists:jabatans,id',
             'golongan_id' => 'nullable|exists:golongans,id',
             'lokasi_id' => 'nullable|exists:lokasis,id',
+            'position' => 'nullable|string|max:255',
             'department' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
@@ -79,14 +80,25 @@ class EmployeeController extends Controller
             'tanggal_keluar' => 'nullable|date',
             'salary' => 'nullable|numeric|min:0',
             'salary_tier' => 'nullable|string|max:50',
+            'bank_name' => 'nullable|string|max:100',
+            'account_number' => 'nullable|string|max:100',
+            'account_holder' => 'nullable|string|max:255',
+            'payment_method' => 'nullable|in:transfer,cash',
+            'leave_quota' => 'nullable|integer|min:0|max:31',
+            'is_night_guard' => 'nullable|boolean',
         ]);
+
+        $validated['payment_method'] = $validated['payment_method'] ?? 'transfer';
+        $validated['is_night_guard'] = $request->has('is_night_guard');
+
+        if (!empty($validated['jabatan_id'])) {
+            $validated['position'] = Jabatan::find($validated['jabatan_id'])?->name ?? ($validated['position'] ?? null);
+        }
 
         if (! auth()->user()->isSuperAdmin()) {
             $this->ensureOperationalPosition($validated);
             unset($validated['salary'], $validated['salary_tier']);
         }
-
-        $validated['position'] = $validated['jabatan_id'] ? Jabatan::find($validated['jabatan_id'])->name : null;
 
         Employee::create($validated);
 
@@ -120,6 +132,7 @@ class EmployeeController extends Controller
             'jabatan_id' => 'nullable|exists:jabatans,id',
             'golongan_id' => 'nullable|exists:golongans,id',
             'lokasi_id' => 'nullable|exists:lokasis,id',
+            'position' => 'nullable|string|max:255',
             'department' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
@@ -129,14 +142,25 @@ class EmployeeController extends Controller
             'tanggal_keluar' => 'nullable|date',
             'salary' => 'nullable|numeric|min:0',
             'salary_tier' => 'nullable|string|max:50',
+            'bank_name' => 'nullable|string|max:100',
+            'account_number' => 'nullable|string|max:100',
+            'account_holder' => 'nullable|string|max:255',
+            'payment_method' => 'nullable|in:transfer,cash',
+            'leave_quota' => 'nullable|integer|min:0|max:31',
+            'is_night_guard' => 'nullable|boolean',
         ]);
+
+        $validated['payment_method'] = $validated['payment_method'] ?? 'transfer';
+        $validated['is_night_guard'] = $request->has('is_night_guard');
+
+        if (!empty($validated['jabatan_id'])) {
+            $validated['position'] = Jabatan::find($validated['jabatan_id'])?->name ?? ($validated['position'] ?? null);
+        }
 
         if (! auth()->user()->isSuperAdmin()) {
             $this->ensureOperationalPosition($validated);
             unset($validated['salary'], $validated['salary_tier']);
         }
-
-        $validated['position'] = $validated['jabatan_id'] ? Jabatan::find($validated['jabatan_id'])->name : null;
 
         $employee->update($validated);
 

@@ -1,0 +1,230 @@
+@extends('layouts.app')
+
+@section('title', 'Absen Daily - ' . \Carbon\Carbon::parse($dateStr)->format('d M Y'))
+
+@section('content')
+<div class="container mx-auto px-4 py-6">
+    <!-- Header & Navigasi Tanggal -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+            <div class="flex items-center space-x-2">
+                <a href="{{ route('attendance.compilation', ['year' => \Carbon\Carbon::parse($dateStr)->year, 'month' => \Carbon\Carbon::parse($dateStr)->month]) }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    <i class="fas fa-arrow-left mr-1"></i> Kembali ke List Kompilasi
+                </a>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800 mt-1">
+                Absen Daily: {{ \Carbon\Carbon::parse($dateStr)->locale('id')->isoFormat('dddd, D MMMM Y') }}
+            </h1>
+            <p class="text-xs text-gray-500">Urutan Checklock: Masuk (06:00-09:00) &rarr; Istirahat (11:00-12:29) &rarr; Masuk Istirahat (12:30-13:30) &rarr; Pulang (15:30-20:00)</p>
+        </div>
+
+        <!-- Filter Tanggal & Status Saat Ini -->
+        <div class="flex items-center gap-3">
+            <form method="GET" action="{{ route('attendance.daily') }}" class="flex items-center gap-2">
+                <input type="date" name="date" value="{{ $dateStr }}" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                <button type="submit" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+
+            <div class="border-l border-gray-300 pl-3">
+                <span class="text-xs font-semibold text-gray-500 uppercase block">Status Tanggal:</span>
+                @if($compilation->status === 'fix')
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-300">
+                        <i class="fas fa-check-double mr-1"></i> FIX
+                    </span>
+                @elseif($compilation->status === 'lock')
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        <i class="fas fa-lock mr-1"></i> LOCK
+                    </span>
+                @else
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-800 border border-gray-300">
+                        <i class="fas fa-edit mr-1"></i> DRAFT
+                    </span>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Anomali Penjelasan -->
+    <div class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded-r-lg">
+        <div class="flex items-start">
+            <div class="flex-shrink-0 mt-0.5">
+                <span class="inline-block w-4 h-4 bg-yellow-300 border border-yellow-500 rounded mr-2"></span>
+            </div>
+            <div class="text-xs text-amber-900 leading-relaxed">
+                <strong>Deteksi Absen Anomali (Highlight Kuning):</strong> Baris berwarna kuning menandakan data di luar ketentuan (checklock di luar batas jam, scan kurang dari 4 kali, atau urutan tidak beraturan). HRD wajib memeriksa dan menekan tombol <strong>FIX</strong> pada tiap baris setelah verifikasi.
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabel Absensi Daily -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto mb-6">
+        <table class="min-w-full divide-y divide-gray-200 text-xs">
+            <thead class="bg-gray-100 text-gray-700 font-semibold uppercase">
+                <tr>
+                    <th class="px-4 py-3 text-left w-12">#</th>
+                    <th class="px-4 py-3 text-left">Nama Karyawan</th>
+                    <th class="px-3 py-3 text-center">Masuk</th>
+                    <th class="px-3 py-3 text-center">Istirahat</th>
+                    <th class="px-3 py-3 text-center">Msk Istirahat</th>
+                    <th class="px-3 py-3 text-center">Pulang</th>
+                    <th class="px-3 py-3 text-center">Telat Masuk</th>
+                    <th class="px-3 py-3 text-center">Telat Msk Istirahat</th>
+                    <th class="px-3 py-3 text-center">Lembur</th>
+                    <th class="px-3 py-3 text-center">Keterangan</th>
+                    <th class="px-3 py-3 text-center">Nominal Izin</th>
+                    <th class="px-4 py-3 text-center">Action FIX</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                @forelse($dailyRecords as $index => $item)
+                    @php
+                        $emp = $item['employee'];
+                        $att = $item['attendance'];
+                        $isAnomaly = $att?->is_anomaly ?? false;
+                        $isFixed = $att?->is_fixed ?? false;
+                        $isIgnored = $att?->isLateIgnored() ?? false;
+                    @endphp
+                    <tr class="transition {{ $isAnomaly ? 'bg-yellow-100 hover:bg-yellow-200/80' : 'hover:bg-blue-50/50' }}">
+                        <td class="px-4 py-3 text-gray-500">{{ $index + 1 }}</td>
+                        <td class="px-4 py-3 font-medium text-gray-900">
+                            <div>{{ $emp->name }}</div>
+                            <div class="text-[10px] text-gray-500">{{ $emp->position ?? $emp->department ?? 'Karyawan' }}</div>
+                            @if($isAnomaly && $att?->anomaly_reason)
+                                <div class="text-[10px] text-amber-700 font-semibold mt-0.5">
+                                    <i class="fas fa-exclamation-circle"></i> {{ $att->anomaly_reason }}
+                                </div>
+                            @endif
+                        </td>
+
+                        <!-- Masuk -->
+                        <td class="px-3 py-3 text-center font-mono font-medium {{ $att?->check_in ? 'text-gray-800' : 'text-gray-400' }}">
+                            {{ $att?->check_in ? substr($att->check_in, 0, 5) : '-' }}
+                        </td>
+
+                        <!-- Istirahat -->
+                        <td class="px-3 py-3 text-center font-mono font-medium {{ $att?->break_out ? 'text-gray-800' : 'text-gray-400' }}">
+                            {{ $att?->break_out ? substr($att->break_out, 0, 5) : '-' }}
+                        </td>
+
+                        <!-- Masuk Istirahat -->
+                        <td class="px-3 py-3 text-center font-mono font-medium {{ $att?->break_in ? 'text-gray-800' : 'text-gray-400' }}">
+                            {{ $att?->break_in ? substr($att->break_in, 0, 5) : '-' }}
+                        </td>
+
+                        <!-- Pulang -->
+                        <td class="px-3 py-3 text-center font-mono font-medium {{ $att?->check_out ? 'text-gray-800' : 'text-gray-400' }}">
+                            {{ $att?->check_out ? substr($att->check_out, 0, 5) : '-' }}
+                        </td>
+
+                        <!-- Telat Masuk -->
+                        <td class="px-3 py-3 text-center">
+                            @if(($att?->late_check_in_minutes ?? 0) > 0)
+                                <span class="{{ $isIgnored ? 'line-through text-gray-400' : 'text-red-600 font-bold' }}">
+                                    {{ $att->late_check_in_minutes }} mnt
+                                </span>
+                                @if($isIgnored)
+                                    <span class="block text-[9px] text-green-600 font-semibold">(diabaikan)</span>
+                                @endif
+                            @else
+                                <span class="text-gray-400">0</span>
+                            @endif
+                        </td>
+
+                        <!-- Telat Masuk Istirahat -->
+                        <td class="px-3 py-3 text-center">
+                            @if(($att?->late_break_in_minutes ?? 0) > 0)
+                                <span class="{{ $isIgnored ? 'line-through text-gray-400' : 'text-red-600 font-bold' }}">
+                                    {{ $att->late_break_in_minutes }} mnt
+                                </span>
+                                @if($isIgnored)
+                                    <span class="block text-[9px] text-green-600 font-semibold">(diabaikan)</span>
+                                @endif
+                            @else
+                                <span class="text-gray-400">0</span>
+                            @endif
+                        </td>
+
+                        <!-- Lembur -->
+                        <td class="px-3 py-3 text-center">
+                            @if(($att?->overtime_minutes ?? 0) > 0)
+                                <span class="text-blue-600 font-bold">{{ $att->overtime_minutes }} mnt</span>
+                            @else
+                                <span class="text-gray-400">-</span>
+                            @endif
+                        </td>
+
+                        <!-- Form inline Edit Izin & Keterangan & Action FIX -->
+                        @if($att)
+                            <td colspan="3" class="px-3 py-2">
+                                <form action="{{ route('attendance.daily.save', $att->id) }}" method="POST" class="flex items-center gap-2">
+                                    @csrf
+                                    <!-- Keterangan -->
+                                    <select name="keterangan" class="text-xs rounded border-gray-300 py-1 px-1.5 focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="hadir" {{ $att->keterangan === 'hadir' ? 'selected' : '' }}>Hadir</option>
+                                        <option value="izin" {{ $att->keterangan === 'izin' ? 'selected' : '' }}>Izin</option>
+                                        <option value="libur" {{ $att->keterangan === 'libur' ? 'selected' : '' }}>Libur</option>
+                                        <option value="alpha" {{ $att->keterangan === 'alpha' ? 'selected' : '' }}>Alpha</option>
+                                    </select>
+
+                                    <!-- Tipe Izin & Nominal -->
+                                    <select name="tipe_nominal_izin" class="text-xs rounded border-gray-300 py-1 px-1 focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="">- Tipe Izin -</option>
+                                        <option value="potong_gaji" {{ $att->tipe_nominal_izin === 'potong_gaji' ? 'selected' : '' }}>Potong Gaji</option>
+                                        <option value="tambah_gaji" {{ $att->tipe_nominal_izin === 'tambah_gaji' ? 'selected' : '' }}>Tambah Gaji</option>
+                                    </select>
+
+                                    <input type="number" name="nominal_izin" value="{{ (int) $att->nominal_izin }}" placeholder="Rp" class="w-24 text-xs rounded border-gray-300 py-1 px-1.5 focus:ring-blue-500 focus:border-blue-500">
+
+                                    <input type="hidden" name="is_fixed" value="1">
+                                    <button type="submit" class="px-3 py-1 rounded text-xs font-semibold transition flex items-center shadow-sm {{ $isFixed ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-200 hover:bg-blue-600 hover:text-white text-gray-800' }}">
+                                        @if($isFixed)
+                                            <i class="fas fa-check mr-1 text-[10px]"></i> FIXED
+                                        @else
+                                            <i class="fas fa-check-circle mr-1 text-[10px]"></i> FIX
+                                        @endif
+                                    </button>
+                                </form>
+                            </td>
+                        @else
+                            <td colspan="3" class="px-3 py-3 text-center text-gray-400">Belum ada record</td>
+                        @endif
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="12" class="px-4 py-8 text-center text-gray-400">Tidak ada data karyawan aktif.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Status Bar & Aksi Bawah: Draft, Lock, Fix -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+            <span class="text-xs text-gray-500">Kompilasi Harian Tanggal {{ \Carbon\Carbon::parse($dateStr)->format('d/m/Y') }}:</span>
+            <p class="text-sm font-semibold text-gray-800">
+                Pilih status untuk menyimpan dan memverifikasi data harian sebelum ditarik ke Rekap Bulanan.
+            </p>
+        </div>
+
+        <form action="{{ route('attendance.daily.status') }}" method="POST" class="flex items-center gap-2">
+            @csrf
+            <input type="hidden" name="date" value="{{ $dateStr }}">
+
+            <button type="submit" name="status" value="draft" class="px-4 py-2 rounded-lg text-xs font-bold transition {{ $compilation->status === 'draft' ? 'bg-gray-800 text-white shadow-md ring-2 ring-gray-400' : 'bg-gray-100 hover:bg-gray-200 text-gray-700' }}">
+                <i class="fas fa-pencil-alt mr-1"></i> Set DRAFT
+            </button>
+
+            <button type="submit" name="status" value="lock" class="px-4 py-2 rounded-lg text-xs font-bold transition {{ $compilation->status === 'lock' ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-400' : 'bg-amber-50 hover:bg-amber-100 text-amber-800' }}">
+                <i class="fas fa-lock mr-1"></i> Set LOCK
+            </button>
+
+            <button type="submit" name="status" value="fix" class="px-5 py-2 rounded-lg text-xs font-bold transition {{ $compilation->status === 'fix' ? 'bg-green-600 text-white shadow-md ring-2 ring-green-400' : 'bg-green-50 hover:bg-green-100 text-green-800' }}">
+                <i class="fas fa-check-double mr-1"></i> FIX SEMUA &amp; SIMPAN
+            </button>
+        </form>
+    </div>
+</div>
+@endsection

@@ -36,6 +36,7 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Golongan</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipe / Kategori</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Keterangan</th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Jml Karyawan</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
@@ -47,6 +48,20 @@
                         <td class="px-6 py-4 text-sm text-gray-500">{{ $loop->iteration }}</td>
                         <td class="px-6 py-4">
                             <div class="font-medium text-gray-800">{{ $golongan->name }}</div>
+                            @if($golongan->is_confidential)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 mt-1">
+                                    <i class="fas fa-user-shield mr-1"></i> Owner Only (Confidential)
+                                </span>
+                            @endif
+                        </td>
+                        <td class="px-6 py-4">
+                            @if($golongan->type === 'mandor_admin')
+                                <span class="px-2.5 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">Admin &amp; Mandor (2 Hari)</span>
+                            @elseif($golongan->type === 'gudang_kandang')
+                                <span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-semibold">Gudang &amp; Kandang (1 Hari)</span>
+                            @else
+                                <span class="text-gray-400 text-xs">-</span>
+                            @endif
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $golongan->description ?? '-' }}</td>
                         <td class="px-6 py-4 text-center">

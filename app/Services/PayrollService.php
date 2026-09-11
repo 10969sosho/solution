@@ -16,55 +16,197 @@ class PayrollService
     }
 
     /**
-     * Hitung rincian gaji satu karyawan untuk periode tertentu.
-     *
-     * Komponen:
-     * - Deduksi: cicilan pinjaman, denda keterlambatan (bertingkat), pemotongan ketidakhadiran.
-     * - Insentif: bonus kehadiran (tidak mengambil jatah libur).
+     * Hitung rincian gaji satu karyawan untuk periode tertentu sesuai Briefing.
+     * Formula:
+     * GRAND TOTAL = GAJI POKOK - POTONGAN TERLAMBAT - IZIN POTONG GAJI + IZIN TAMBAH GAJI
+     *               - PINJAMAN - POTONGAN MASUK + BONUSAN + UANG JAGA MALAM + NOMINAL LEMBUR
      */
-    public function calculate(Employee $employee, int $year, int $month): array
+    public function calculate(Employee $employee, int $year, int $month, ?float $manualLoanDeduction = null): array
     {
-        $attendance = $this->attendanceService->processMonth($employee, $year, $month);
         $baseSalary = (float) $employee->salary;
+        $start = Carbon::create($year, $month, 1)->startOfMonth();
+        $end = $start->copy()->endOfMonth();
 
-        // Get all approved permits for this month
-        $permits = Permit::where('employee_id', $employee->id)
-            ->where('status', 'approved')
-            ->whereYear('permit_date', $year)
-            ->whereMonth('permit_date', $month)
+        // 1. Ambil data absensi harian dari DailyAttendance jika ada
+        $dailies = \App\Models\DailyAttendance::where('employee_id', $employee->id)
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->get();
 
-        $lateDeduction = $this->calculateLateDeductionWithPermits($employee, $attendance, $permits);
-        $loanDeduction = $this->calculateLoanDeduction($employee, $year, $month);
-        $absenceDeduction = $this->calculateAbsenceDeduction($employee, $year, $month, $attendance);
-        $attendanceBonus = $this->calculateAttendanceBonus($employee, $year, $month, $permits);
+        $totalLateInMinutes = 0;
+        $totalLateBreakInMinutes = 0;
+        $totalIzinCount = 0;
+        $izinPotongGaji = 0;
+        $izinTambahGaji = 0;
+        $totalHariLibur = 0;
+        $totalOvertimeMinutes = 0;
+        $daysPresent = 0;
+        $totalWorkMinutes = 0;
 
-        $totalDeduction = round($lateDeduction + $loanDeduction + $absenceDeduction, 2);
-        $totalIncentive = round($attendanceBonus, 2);
-        $netSalary = round($baseSalary - $totalDeduction + $totalIncentive, 2);
+        if ($dailies->isNotEmpty()) {
+            foreach ($dailies as $d) {
+                if ($d->check_in || $d->check_out) {
+                    $daysPresent++;
+                }
 
-        // Calculate actual late minutes (after permit deductions)
-        $actualLateMinutes = $this->calculateActualLateMinutes($attendance, $permits);
+                if ($d->keterangan === 'izin') {
+                    $totalIzinCount++;
+                }
+
+                if ($d->isLateIgnored()) {
+                    if ($d->tipe_nominal_izin === 'potong_gaji') {
+                        $izinPotongGaji += (float) $d->nominal_izin;
+                    } elseif ($d->tipe_nominal_izin === 'tambah_gaji') {
+                        $izinTambahGaji += (float) $d->nominal_izin;
+                    }
+                } else {
+                    $totalLateInMinutes += (int) $d->late_check_in_minutes;
+                    $totalLateBreakInMinutes += (int) $d->late_break_in_minutes;
+                }
+
+                if ($d->keterangan === 'libur') {
+                    $totalHariLibur++;
+                }
+
+                $totalOvertimeMinutes += (int) $d->overtime_minutes;
+            }
+
+            // 2. Hitung Potongan Keterlambatan sebulan akumulasi vs Master Potongan Terlambat
+            $potonganTerlambatMasuk = $this->calculateLateFine($employee, $totalLateInMinutes, 'masuk_kerja');
+            $potonganTerlambatIstirahat = $this->calculateLateFine($employee, $totalLateBreakInMinutes, 'setelah_istirahat');
+            $totalPotonganTerlambat = round($potonganTerlambatMasuk + $potonganTerlambatIstirahat, 2);
+
+            // 3. Hitung Jatah Libur & Potongan Masuk
+            $quota = $employee->getEffectiveLeaveQuota();
+            $hariPotongMasuk = max(0, $totalHariLibur - $quota);
+            $sisaLibur = max(0, $quota - $totalHariLibur);
+
+            $dailyDivider = (int) config('payroll_rules.potongan_masuk.divider', 30);
+            $dailyRate = $baseSalary > 0 ? ($baseSalary / $dailyDivider) : 0;
+            $potonganMasuk = round($dailyRate * $hariPotongMasuk, 2);
+
+            // 4. Hitung Bonus Libur (Pencairan Sisa Libur)
+            $bonusLibur = 0;
+            if ($sisaLibur > 0 && $baseSalary > 0) {
+                $salaryThreshold = (float) config('payroll_rules.bonus_libur.salary_threshold', 2250000);
+                if ($baseSalary >= $salaryThreshold) {
+                    $multiplier = (float) config('payroll_rules.bonus_libur.high_salary_multiplier', 1.5);
+                    $bonusLibur = round($dailyRate * $multiplier * $sisaLibur, 2);
+                } else {
+                    $perDayRate = (float) config('payroll_rules.bonus_libur.low_salary_per_day', 75000);
+                    $bonusLibur = round($perDayRate * $sisaLibur, 2);
+                }
+            }
+
+            // 5. Uang Jaga Malam
+            $uangJagaMalam = 0;
+            if ($employee->is_night_guard) {
+                if ($employee->isMandor()) {
+                    $uangJagaMalam = (float) config('payroll_rules.uang_jaga_malam.mandor_bonus', 600000);
+                } else {
+                    $uangJagaMalam = (float) config('payroll_rules.uang_jaga_malam.default_bonus', 0);
+                }
+            }
+
+            // 6. Nominal Lembur
+            $hourlyRate = $baseSalary > 0 ? ($baseSalary / 173) : 0;
+            $nominalLembur = round(($totalOvertimeMinutes / 60) * $hourlyRate, 2);
+
+            // 7. Pinjaman Karyawan
+            $pinjamanDeduction = $manualLoanDeduction !== null
+                ? (float) $manualLoanDeduction
+                : $this->calculateLoanDeduction($employee, $year, $month);
+
+            // 8. Rumus Grand Total Gaji (Section 14 briefing):
+            // GRAND TOTAL = GAJI POKOK - POTONGAN TERLAMBAT - IZIN POTONG GAJI + IZIN TAMBAH GAJI
+            //               - PINJAMAN - POTONGAN MASUK + BONUSAN + UANG JAGA MALAM + NOMINAL LEMBUR
+            $grandTotal = round(
+                $baseSalary
+                - $totalPotonganTerlambat
+                - $izinPotongGaji
+                + $izinTambahGaji
+                - $pinjamanDeduction
+                - $potonganMasuk
+                + $bonusLibur
+                + $uangJagaMalam
+                + $nominalLembur,
+                2
+            );
+
+            $totalDeduction = round($totalPotonganTerlambat + $izinPotongGaji + $pinjamanDeduction + $potonganMasuk, 2);
+            $totalIncentive = round($izinTambahGaji + $bonusLibur + $uangJagaMalam + $nominalLembur, 2);
+            $attendanceBonus = $bonusLibur;
+        } else {
+            // Fallback memproses via attendance log langsung (backward compatible)
+            $attendance = $this->attendanceService->processMonth($employee, $year, $month);
+            $permits = Permit::where('employee_id', $employee->id)
+                ->where('status', 'approved')
+                ->whereYear('permit_date', $year)
+                ->whereMonth('permit_date', $month)
+                ->get();
+
+            $actualLate = $this->calculateActualLateMinutes($attendance, $permits);
+            $totalLateInMinutes = $actualLate['total_late'];
+            $totalLateBreakInMinutes = $actualLate['total_late_break_in'];
+            $daysPresent = $attendance['days_present'];
+            $totalWorkMinutes = $attendance['total_work_minutes'];
+
+            $lateDeduction = $this->calculateLateDeductionWithPermits($employee, $attendance, $permits);
+            $pinjamanDeduction = $manualLoanDeduction !== null
+                ? (float) $manualLoanDeduction
+                : $this->calculateLoanDeduction($employee, $year, $month);
+            $potonganMasuk = $this->calculateAbsenceDeduction($employee, $year, $month, $attendance);
+            $attendanceBonus = $this->calculateAttendanceBonus($employee, $year, $month, $permits);
+
+            $totalPotonganTerlambat = $lateDeduction;
+            $potonganTerlambatMasuk = $lateDeduction;
+            $potonganTerlambatIstirahat = 0;
+            $bonusLibur = 0;
+            $uangJagaMalam = 0;
+            $nominalLembur = 0;
+            $quota = $employee->getEffectiveLeaveQuota();
+            $sisaLibur = 0;
+            $hariPotongMasuk = 0;
+
+            $totalDeduction = round($lateDeduction + $pinjamanDeduction + $potonganMasuk, 2);
+            $totalIncentive = round($attendanceBonus, 2);
+            $grandTotal = round($baseSalary - $totalDeduction + $totalIncentive, 2);
+        }
 
         return [
             'employee_id' => $employee->id,
             'period_year' => $year,
             'period_month' => $month,
             'base_salary' => $baseSalary,
-            'late_deduction' => $lateDeduction,
-            'loan_deduction' => $loanDeduction,
-            'absence_deduction' => $absenceDeduction,
+            'late_deduction' => $totalPotonganTerlambat,
+            'loan_deduction' => $pinjamanDeduction,
+            'absence_deduction' => $potonganMasuk,
             'total_deduction' => $totalDeduction,
             'attendance_bonus' => $attendanceBonus,
             'total_incentive' => $totalIncentive,
-            'net_salary' => $netSalary,
+            'net_salary' => $grandTotal,
+            'total_izin_count' => $totalIzinCount,
+            'izin_potong_gaji' => $izinPotongGaji,
+            'izin_tambah_gaji' => $izinTambahGaji,
+            'potongan_terlambat_masuk' => $potonganTerlambatMasuk,
+            'potongan_terlambat_istirahat' => $potonganTerlambatIstirahat,
+            'total_potongan_terlambat' => $totalPotonganTerlambat,
+            'total_lembur_minutes' => $totalOvertimeMinutes,
+            'nominal_lembur' => $nominalLembur,
+            'uang_jaga_malam' => $uangJagaMalam,
+            'bonus_libur' => $bonusLibur,
+            'total_hari_libur' => $totalHariLibur,
+            'hari_potong_masuk' => $hariPotongMasuk,
+            'potongan_masuk' => $potonganMasuk,
+            'pinjaman_deduction' => $pinjamanDeduction,
+            'grand_total' => $grandTotal,
+            'payment_method' => $employee->payment_method ?? 'transfer',
             'breakdown' => [
-                'total_late_minutes' => $actualLateMinutes['total_late'],
-                'days_late' => $actualLateMinutes['days_late'],
-                'total_late_break_in_minutes' => $actualLateMinutes['total_late_break_in'],
-                'days_late_break_in' => $actualLateMinutes['days_late_break_in'],
-                'days_present' => $attendance['days_present'],
-                'total_work_minutes' => $attendance['total_work_minutes'],
+                'total_late_minutes' => $totalLateInMinutes,
+                'total_late_break_in_minutes' => $totalLateBreakInMinutes,
+                'days_present' => $daysPresent,
+                'total_work_minutes' => $totalWorkMinutes,
+                'leave_quota' => $quota,
+                'sisa_libur' => $sisaLibur,
             ],
         ];
     }
@@ -72,7 +214,7 @@ class PayrollService
     /**
      * Simpan payroll (upsert) untuk satu karyawan. Tidak bisa digenerate ulang jika sudah paid.
      */
-    public function generate(Employee $employee, int $year, int $month): Payroll
+    public function generate(Employee $employee, int $year, int $month, ?float $manualLoanDeduction = null): Payroll
     {
         if (Payroll::where('employee_id', $employee->id)
             ->where('period_year', $year)
@@ -82,7 +224,7 @@ class PayrollService
             throw new \RuntimeException('Payroll periode ini sudah berstatus paid dan tidak dapat diubah.');
         }
 
-        $data = $this->calculate($employee, $year, $month);
+        $data = $this->calculate($employee, $year, $month, $manualLoanDeduction);
 
         return Payroll::updateOrCreate(
             [
@@ -94,14 +236,15 @@ class PayrollService
         );
     }
 
-    public function generateAll(int $year, int $month): array
+    public function generateAll(int $year, int $month, array $manualLoans = []): array
     {
         $employees = Employee::where('status', 'active')->get();
         $created = [];
 
-        DB::transaction(function () use ($employees, $year, $month, &$created) {
+        DB::transaction(function () use ($employees, $year, $month, $manualLoans, &$created) {
             foreach ($employees as $employee) {
-                $created[] = $this->generate($employee, $year, $month);
+                $manualLoan = isset($manualLoans[$employee->id]) ? (float) $manualLoans[$employee->id] : null;
+                $created[] = $this->generate($employee, $year, $month, $manualLoan);
             }
         });
 

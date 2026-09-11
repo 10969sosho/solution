@@ -51,7 +51,12 @@ class WorkSetting extends Model
             $setting = static::where('is_active', true)
                 ->where('golongan_id', $gid)
                 ->where(function ($query) use ($dayName) {
-                    $query->whereNull('day')->orWhereRaw('FIND_IN_SET(?, day)', [$dayName]);
+                    if (config('database.default') === 'sqlite' || \Illuminate\Support\Facades\DB::getDriverName() === 'sqlite') {
+                        $query->whereNull('day')
+                            ->orWhereRaw("instr(',' || day || ',', ',' || ? || ',') > 0", [$dayName]);
+                    } else {
+                        $query->whereNull('day')->orWhereRaw('FIND_IN_SET(?, day)', [$dayName]);
+                    }
                 })
                 ->orderByRaw('CASE WHEN day IS NULL THEN 1 ELSE 0 END ASC')
                 ->first();

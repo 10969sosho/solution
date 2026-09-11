@@ -45,7 +45,7 @@
             <nav class="flex-1 overflow-y-auto p-4 space-y-2" x-data="{
                 openGroups: {
                     master: @js(request()->is(['employees*', 'golongans*', 'jabatans*', 'lokasis*'])),
-                    attendance: @js(request()->is(['schedules*', 'seasonal*', 'settings*'])),
+                    attendance: @js(request()->is(['attendance*', 'schedules*', 'seasonal*', 'settings*'])),
                     reports: @js(request()->is('reports*')),
                     hr: @js(request()->is(['permits*', 'loans*', 'payrolls*']))
                 },
@@ -57,6 +57,39 @@
                     <i class="fas fa-tachometer-alt w-5"></i>
                     <span class="ml-3">Dashboard</span>
                 </a>
+
+                <!-- Absensi & Kompilasi Harian -->
+                <div>
+                    <button type="button" class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors" @click="toggleGroup('attendance')" :aria-expanded="openGroups.attendance">
+                        <span class="flex items-center"><i class="fas fa-calendar-check w-5"></i><span class="ml-3">Absensi &amp; Kompilasi</span></span>
+                        <i class="fas fa-chevron-down text-xs transition-transform" :class="{ 'rotate-180': openGroups.attendance }"></i>
+                    </button>
+                    <div x-cloak x-show="openGroups.attendance" x-transition class="mt-1 space-y-1">
+                        <a href="{{ route('attendance.compilation') }}" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->routeIs('attendance.compilation') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-calendar-alt w-5"></i><span class="ml-3">List Kompilasi</span>
+                        </a>
+                        <a href="{{ route('attendance.daily') }}" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->routeIs('attendance.daily') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-user-clock w-5"></i><span class="ml-3">Absen Daily</span>
+                        </a>
+                        <a href="{{ route('attendance.employee-detail') }}" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->routeIs('attendance.employee-detail') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-id-card w-5"></i><span class="ml-3">Detail Absen Karyawan</span>
+                        </a>
+                        <a href="{{ route('attendance.monthly-recap') }}" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->routeIs('attendance.monthly-recap') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-file-invoice w-5"></i><span class="ml-3">Rekap Bulanan</span>
+                        </a>
+                        <a href="/schedules" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('schedules*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-clock w-5"></i><span class="ml-3">Jam Kerja Khusus</span>
+                        </a>
+                        <a href="/seasonal" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('seasonal*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-sun w-5"></i><span class="ml-3">Jam Kerja Musiman</span>
+                        </a>
+                        <a href="/settings" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('settings*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-cog w-5"></i><span class="ml-3">Setting Jam Kerja</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Master Data -->
                 <div>
                     <button type="button" class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors" @click="toggleGroup('master')" :aria-expanded="openGroups.master">
                         <span class="flex items-center"><i class="fas fa-database w-5"></i><span class="ml-3">Master Data</span></span>
@@ -84,30 +117,16 @@
                     </div>
                 </div>
 
-                <div>
-                    <button type="button" class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors" @click="toggleGroup('attendance')" :aria-expanded="openGroups.attendance">
-                        <span class="flex items-center"><i class="fas fa-calendar-check w-5"></i><span class="ml-3">Absensi &amp; Jadwal</span></span>
-                        <i class="fas fa-chevron-down text-xs transition-transform" :class="{ 'rotate-180': openGroups.attendance }"></i>
-                    </button>
-                    <div x-cloak x-show="openGroups.attendance" x-transition class="mt-1 space-y-1">
-                        <a href="/schedules" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('schedules*') ? 'bg-blue-700 shadow-lg' : '' }}">
-                            <i class="fas fa-clock w-5"></i><span class="ml-3">Jam Kerja Khusus</span>
-                        </a>
-                        <a href="/seasonal" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('seasonal*') ? 'bg-blue-700 shadow-lg' : '' }}">
-                            <i class="fas fa-calendar-alt w-5"></i><span class="ml-3">Jam Kerja Musiman</span>
-                        </a>
-                        <a href="/settings" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('settings*') ? 'bg-blue-700 shadow-lg' : '' }}">
-                            <i class="fas fa-cog w-5"></i><span class="ml-3">Setting Jam Kerja</span>
-                        </a>
-                    </div>
-                </div>
-
+                <!-- Laporan -->
                 <div>
                     <button type="button" class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors" @click="toggleGroup('reports')" :aria-expanded="openGroups.reports">
                         <span class="flex items-center"><i class="fas fa-chart-pie w-5"></i><span class="ml-3">Laporan</span></span>
                         <i class="fas fa-chevron-down text-xs transition-transform" :class="{ 'rotate-180': openGroups.reports }"></i>
                     </button>
                     <div x-cloak x-show="openGroups.reports" x-transition class="mt-1 space-y-1">
+                        <a href="/reports/yearly" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('reports/yearly*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-calendar w-5"></i><span class="ml-3">Laporan Tahunan (Libur)</span>
+                        </a>
                         <a href="/reports/attendance-detail" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('reports/attendance-detail*') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-clipboard-list w-5"></i><span class="ml-3">Laporan Absensi Rinci</span>
                         </a>
@@ -117,12 +136,10 @@
                         <a href="/loans/laporan" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('loans/laporan*') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-file-invoice-dollar w-5"></i><span class="ml-3">Laporan Pinjaman</span>
                         </a>
-                        <a href="/reports/summary" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('reports/summary*') ? 'bg-blue-700 shadow-lg' : '' }}">
-                            <i class="fas fa-file-alt w-5"></i><span class="ml-3">Rekap Bulanan</span>
-                        </a>
                     </div>
                 </div>
 
+                <!-- HR & Keuangan -->
                 <div>
                     <button type="button" class="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors" @click="toggleGroup('hr')" :aria-expanded="openGroups.hr">
                         <span class="flex items-center"><i class="fas fa-briefcase w-5"></i><span class="ml-3">HR &amp; Keuangan</span></span>
@@ -137,7 +154,7 @@
                         </a>
                         @if(auth()->user()?->canManagePayroll())
                         <a href="/payrolls" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('payrolls*') ? 'bg-blue-700 shadow-lg' : '' }}">
-                            <i class="fas fa-money-check-alt w-5"></i><span class="ml-3">Payroll</span>
+                            <i class="fas fa-money-check-alt w-5"></i><span class="ml-3">Payroll &amp; Slip Gaji</span>
                         </a>
                         @endif
                     </div>

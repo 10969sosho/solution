@@ -28,6 +28,8 @@ class PermitTest extends TestCase
     {
         $response = $this->post(route('permits.store'), [
             'employee_id' => $this->employee->id,
+            'category' => 'tidak_masuk',
+            'deduction_type' => 'no_deduction',
             'permit_date' => '2026-08-10',
             'start_time' => '08:05',
             'end_time' => '08:15',
@@ -45,6 +47,8 @@ class PermitTest extends TestCase
     {
         $response = $this->post(route('permits.store'), [
             'employee_id' => $this->employee->id,
+            'category' => 'tidak_masuk',
+            'deduction_type' => 'salary_deduction',
             'permit_date' => '2026-08-10',
             'start_time' => '10:00',
             'end_time' => '13:00',
