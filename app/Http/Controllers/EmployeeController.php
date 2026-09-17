@@ -53,6 +53,34 @@ class EmployeeController extends Controller
         return view('employees.index', compact('employees', 'jabatans', 'golongans', 'lokasis'));
     }
 
+    public function export(Request $request)
+    {
+        $query = Employee::with(['lokasi', 'golongan', 'jabatan'])
+            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $this->operationalScope($q));
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(fn ($q) => $q->where('name', 'like', "%{$search}%")
+                ->orWhere('employee_id', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%"));
+        }
+
+        foreach (['jabatan_id', 'golongan_id', 'lokasi_id'] as $filter) {
+            if ($request->filled($filter)) {
+                $query->where($filter, $request->input($filter));
+            }
+        }
+
+        if ($request->filled('join_date_from')) {
+            $query->where('join_date', '>=', $request->join_date_from);
+        }
+        if ($request->filled('join_date_to')) {
+            $query->where('join_date', '<=', $request->join_date_to);
+        }
+
+        return view('employees.export', ['employees' => $query->orderBy('employee_id')->get()]);
+    }
+
     public function create()
     {
         $jabatans = Jabatan::orderBy('name')->get();

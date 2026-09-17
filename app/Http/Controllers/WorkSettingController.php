@@ -11,7 +11,7 @@ class WorkSettingController extends Controller
 {
     public function index()
     {
-        $settings = WorkSetting::with('golongan')->orderBy('golongan_id')->get();
+        $settings = WorkSetting::with(['golongan', 'golongans'])->orderBy('golongan_id')->get();
         $golongans = Golongan::orderBy('name')->get();
 
         return view('settings.index', compact('settings', 'golongans'));
@@ -26,15 +26,14 @@ class WorkSettingController extends Controller
     public function store(Request $request)
     {
         $data = $request->all();
-        if (empty($data['golongan_id'])) {
-            $data['golongan_id'] = null;
-        }
+        $data['golongan_ids'] = $data['golongan_ids'] ?? [];
 
         $validated = Validator::make($data, [
             'name' => 'required|string|max:255',
             'day' => 'nullable|array',
             'day.*' => 'in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu',
-            'golongan_id' => 'nullable|exists:golongans,id',
+            'golongan_ids' => 'nullable|array',
+            'golongan_ids.*' => 'exists:golongans,id',
             'check_in_time' => 'required',
             'check_out_time' => 'required',
             'break_out_time' => 'required',
@@ -52,7 +51,11 @@ class WorkSettingController extends Controller
         $validated['day'] = ! empty($validated['day']) ? implode(',', $validated['day']) : null;
         $validated['is_active'] = $request->boolean('is_active');
 
-        WorkSetting::create($validated);
+        $setting = WorkSetting::create(array_merge(
+            array_diff_key($validated, ['golongan_ids' => true]),
+            ['golongan_id' => null]
+        ));
+        $setting->golongans()->sync($validated['golongan_ids']);
 
         return redirect()->route('settings.index')->with('success', 'Setting jam kerja berhasil ditambahkan');
     }
@@ -66,15 +69,14 @@ class WorkSettingController extends Controller
     public function update(Request $request, WorkSetting $setting)
     {
         $data = $request->all();
-        if (empty($data['golongan_id'])) {
-            $data['golongan_id'] = null;
-        }
+        $data['golongan_ids'] = $data['golongan_ids'] ?? [];
 
         $validated = Validator::make($data, [
             'name' => 'required|string|max:255',
             'day' => 'nullable|array',
             'day.*' => 'in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu',
-            'golongan_id' => 'nullable|exists:golongans,id',
+            'golongan_ids' => 'nullable|array',
+            'golongan_ids.*' => 'exists:golongans,id',
             'check_in_time' => 'required',
             'check_out_time' => 'required',
             'break_out_time' => 'required',
@@ -92,7 +94,11 @@ class WorkSettingController extends Controller
         $validated['day'] = ! empty($validated['day']) ? implode(',', $validated['day']) : null;
         $validated['is_active'] = $request->boolean('is_active');
 
-        $setting->update($validated);
+        $setting->update(array_merge(
+            array_diff_key($validated, ['golongan_ids' => true]),
+            ['golongan_id' => null]
+        ));
+        $setting->golongans()->sync($validated['golongan_ids']);
 
         return redirect()->route('settings.index')->with('success', 'Setting berhasil diupdate');
     }

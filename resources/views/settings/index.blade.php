@@ -52,8 +52,8 @@
                             <div class="text-xs text-gray-500">{{ $setting->description }}</div>
                         </td>
                         <td class="px-6 py-4">
-                            @if($setting->golongan)
-                                <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">{{ $setting->golongan->name }}</span>
+                            @if($setting->golongans->isNotEmpty() || $setting->golongan)
+                                <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">{{ $setting->golongans->pluck('name')->push($setting->golongan?->name)->filter()->unique()->join(', ') }}</span>
                             @else
                                 <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">Global (Semua)</span>
                             @endif

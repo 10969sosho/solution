@@ -20,8 +20,9 @@
 
         <!-- Filter Tanggal & Status Saat Ini -->
         <div class="flex items-center gap-3">
-            <form method="GET" action="{{ route('attendance.daily') }}" class="flex items-center gap-2">
+            <form method="GET" action="{{ route('attendance.daily') }}" class="flex flex-wrap items-center gap-2">
                 <input type="date" name="date" value="{{ $dateStr }}" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                 <button type="submit" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition">
                     <i class="fas fa-search"></i>
                 </button>

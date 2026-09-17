@@ -13,6 +13,7 @@
 
         <!-- Filter Karyawan & Periode -->
         <form method="GET" action="{{ route('attendance.employee-detail') }}" class="flex flex-wrap items-center gap-2">
+            <input type="search" name="search" value="{{ $search }}" placeholder="Cari nama" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
             <select name="employee_id" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 min-w-[200px]" onchange="this.form.submit()">
                 @foreach($employees as $emp)
                     <option value="{{ $emp->id }}" {{ ($selectedEmployee?->id == $emp->id) ? 'selected' : '' }}>

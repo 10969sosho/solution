@@ -43,6 +43,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [DashboardController::class, 'data'])->name('dashboard.data');
 
+    Route::get('/employees-export', [EmployeeController::class, 'export'])->name('employees.export');
     Route::resource('employees', EmployeeController::class);
     Route::resource('settings', WorkSettingController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
     Route::resource('schedules', EmployeeScheduleController::class);
@@ -55,7 +56,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/daily/{daily}/save', [\App\Http\Controllers\AttendanceDailyController::class, 'saveRow'])->name('attendance.daily.save');
         Route::post('/daily/status', [\App\Http\Controllers\AttendanceDailyController::class, 'updateStatus'])->name('attendance.daily.status');
         Route::get('/employee-detail', [\App\Http\Controllers\AttendanceDailyController::class, 'employeeDetail'])->name('attendance.employee-detail');
-        Route::get('/monthly-recap', [\App\Http\Controllers\AttendanceDailyController::class, 'monthlyRecap'])->name('attendance.monthly-recap');
+    Route::get('/monthly-recap', [\App\Http\Controllers\AttendanceDailyController::class, 'monthlyRecap'])->name('attendance.monthly-recap');
     });
 
     Route::get('/permits', [PermitController::class, 'index'])->name('permits.index');

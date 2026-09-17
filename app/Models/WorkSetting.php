@@ -30,6 +30,11 @@ class WorkSetting extends Model
         return $this->belongsTo(Golongan::class);
     }
 
+    public function golongans()
+    {
+        return $this->belongsToMany(Golongan::class, 'work_setting_golongan');
+    }
+
     public static function getActive()
     {
         return static::where('is_active', true)->whereNull('golongan_id')->first();
@@ -49,7 +54,12 @@ class WorkSetting extends Model
 
         foreach ($golonganIds as $gid) {
             $setting = static::where('is_active', true)
-                ->where('golongan_id', $gid)
+                ->where(function ($query) use ($gid) {
+                    $query->where('golongan_id', $gid);
+                    if ($gid) {
+                        $query->orWhereHas('golongans', fn ($q) => $q->whereKey($gid));
+                    }
+                })
                 ->where(function ($query) use ($dayName) {
                     if (config('database.default') === 'sqlite' || \Illuminate\Support\Facades\DB::getDriverName() === 'sqlite') {
                         $query->whereNull('day')

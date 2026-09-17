@@ -82,6 +82,9 @@
                 Daftar Karyawan
                 <span class="text-sm font-normal text-gray-500 ml-2">({{ $employees->total() }} data)</span>
             </h3>
+            <a href="{{ route('employees.export', request()->query()) }}" target="_blank" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                <i class="fas fa-file-pdf mr-2"></i>Export PDF
+            </a>
             <a href="{{ route('employees.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                 <i class="fas fa-plus mr-2"></i>Tambah Karyawan
             </a>

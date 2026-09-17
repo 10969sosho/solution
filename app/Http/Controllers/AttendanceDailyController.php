@@ -98,9 +98,12 @@ class AttendanceDailyController extends Controller
         $employees = Employee::query()
             ->where('status', 'active')
             ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
+            ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%' . $request->search . '%'))
             ->with(['golongan', 'jabatan'])
             ->orderBy('name')
             ->get();
+
+        $permits = Permit::where('permit_date', $dateStr)->get();
 
         // Sinkronkan atau ambil data absensi harian karyawan
         $dailyRecords = [];
@@ -243,10 +246,12 @@ class AttendanceDailyController extends Controller
         $year = (int) $request->input('year', now()->year);
         $month = (int) $request->input('month', now()->month);
         $employeeId = $request->input('employee_id');
+        $search = $request->input('search');
 
         $employees = Employee::query()
             ->where('status', 'active')
             ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
+            ->when($search, fn ($q) => $q->where('name', 'like', '%' . $search . '%'))
             ->orderBy('name')
             ->get();
 
@@ -317,7 +322,8 @@ class AttendanceDailyController extends Controller
             'rows',
             'totalLateIn',
             'totalLateBreakIn',
-            'totalLibur'
+            'totalLibur',
+            'search'
         ));
     }
 

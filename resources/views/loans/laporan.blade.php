@@ -65,11 +65,10 @@
                     <tr>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">No</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Sisa</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Bon {{ $prevMonthName }}</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Sisa Bulan Sebelumnya</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Bon Bulan Ini</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Bayar {{ $reportMonthName }}</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Sisa Akhir</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
@@ -85,8 +84,8 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 text-right text-sm text-gray-700">
-                            @if($row['bon_prev_month'] > 0)
-                                <span class="text-red-600">Rp {{ number_format($row['bon_prev_month'], 0, ',', '.') }}</span>
+                            @if($row['bon_month'] > 0)
+                                <span class="text-red-600">Rp {{ number_format($row['bon_month'], 0, ',', '.') }}</span>
                             @else
                                 <span class="text-gray-400">-</span>
                             @endif
@@ -105,16 +104,10 @@
                                 <span class="text-green-600">Rp 0</span>
                             @endif
                         </td>
-                        <td class="px-6 py-4 text-center">
-                            <span class="px-3 py-1 rounded-full text-xs font-medium
-                                {{ $row['status'] === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
-                                {{ $row['status'] }}
-                            </span>
-                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-12 text-center">
+                        <td colspan="6" class="px-6 py-12 text-center">
                             <i class="fas fa-file-invoice-dollar text-4xl text-gray-300 mb-3"></i>
                             <p class="text-gray-500">Belum ada data pinjaman</p>
                         </td>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\Loan;
 use App\Models\LoanPayment;
+use App\Models\Payroll;
 use Illuminate\Http\Request;
 
 class LoanController extends Controller
@@ -140,12 +141,9 @@ class LoanController extends Controller
         $employees = Employee::query()
             ->where('status', 'active')
             ->whereHas('loans')
+            ->when($employeeId, fn ($q) => $q->whereKey($employeeId))
             ->orderBy('name')
             ->get();
-
-        if ($employeeId) {
-            $employees = $employees->where('employee_id', $employeeId);
-        }
 
         $mutasi = [];
 
@@ -184,12 +182,9 @@ class LoanController extends Controller
         $employees = Employee::query()
             ->where('status', 'active')
             ->whereHas('loans')
+            ->when($employeeId, fn ($q) => $q->whereKey($employeeId))
             ->orderBy('name')
             ->get();
-
-        if ($employeeId) {
-            $employees = $employees->where('employee_id', $employeeId);
-        }
 
         $report = [];
         $monthNames = [
@@ -200,63 +195,37 @@ class LoanController extends Controller
 
         $reportMonthName = $monthNames[$month];
 
-        // Hitung bulan sebelumnya
-        if ($month == 1) {
-            $prevMonth = 12;
-            $prevYear = $year - 1;
-        } else {
-            $prevMonth = $month - 1;
-            $prevYear = $year;
-        }
-        $prevMonthName = $monthNames[$prevMonth];
-
         foreach ($employees as $employee) {
             $loans = $employee->loans()->orderBy('loan_date')->get();
 
-            // Sisa sebelum bulan sebelumnya (sisa sampai akhir bulan -2)
-            $paymentsBeforePrevMonth = $employee->loans->flatMap->payments
-                ->filter(function ($payment) use ($prevYear, $prevMonth) {
-                    $payDate = $payment->payment_date;
-                    return $payDate->year < $prevYear || ($payDate->year == $prevYear && $payDate->month < $prevMonth);
-                })
-                ->sum('amount');
+            $periodStart = now()->setDate($year, $month, 1)->startOfMonth();
+            $sisaBefore = $loans->filter(fn ($loan) => $loan->loan_date->lt($periodStart))
+                ->sum('principal') - Payroll::where('employee_id', $employee->id)
+                    ->where(fn ($q) => $q->where('period_year', '<', $year)
+                        ->orWhere(fn ($q) => $q->where('period_year', $year)->where('period_month', '<', $month)))
+                    ->sum('pinjaman_deduction');
 
-            $loansBeforePrevMonth = $loans->filter(function ($loan) use ($prevYear, $prevMonth) {
-                $loanDate = $loan->loan_date;
-                return $loanDate->year < $prevYear || ($loanDate->year == $prevYear && $loanDate->month < $prevMonth);
-            })->sum('principal');
+            $bonMonth = $loans->filter(fn ($loan) => $loan->loan_date->year === $year && $loan->loan_date->month === $month)
+                ->sum('principal');
 
-            $sisaBefore = $loansBeforePrevMonth - $paymentsBeforePrevMonth;
+            $bayarMonth = Payroll::where('employee_id', $employee->id)
+                ->where('period_year', $year)
+                ->where('period_month', $month)
+                ->sum('pinjaman_deduction');
 
-            // Bon bulan sebelumnya (pinjaman baru di bulan sebelumnya)
-            $bonPrevMonth = $loans->filter(function ($loan) use ($prevYear, $prevMonth) {
-                $loanDate = $loan->loan_date;
-                return $loanDate->year == $prevYear && $loanDate->month == $prevMonth;
-            })->sum('principal');
-
-            // Pembayaran di bulan ini (bulan yang di-filter)
-            $bayarMonth = $employee->loans->flatMap->payments
-                ->filter(function ($payment) use ($year, $month) {
-                    $payDate = $payment->payment_date;
-                    return $payDate->year == $year && $payDate->month == $month;
-                })
-                ->sum('amount');
-
-            // Sisa akhir
-            $sisaAkhir = $sisaBefore + $bonPrevMonth - $bayarMonth;
-            $status = $sisaAkhir <= 0 ? 'Lunas' : 'Belum Lunas';
+            $sisaBefore = max(0, $sisaBefore);
+            $sisaAkhir = max(0, $sisaBefore + $bonMonth - $bayarMonth);
 
             $report[] = [
                 'employee_id' => $employee->employee_id,
                 'name' => $employee->name,
                 'sisa_before' => $sisaBefore,
-                'bon_prev_month' => $bonPrevMonth,
+                'bon_month' => $bonMonth,
                 'bayar_month' => $bayarMonth,
-                'sisa_akhir' => max(0, $sisaAkhir),
-                'status' => $status,
+                'sisa_akhir' => $sisaAkhir,
             ];
         }
 
-        return view('loans.laporan', compact('report', 'employees', 'year', 'month', 'reportMonthName', 'prevMonthName'));
+        return view('loans.laporan', compact('report', 'employees', 'year', 'month', 'reportMonthName'));
     }
 }
