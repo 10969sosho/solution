@@ -95,6 +95,8 @@ class AttendanceDailyController extends Controller
             ['status' => 'draft']
         );
 
+        $filter = $request->input('filter', 'all');
+
         $employees = Employee::query()
             ->where('status', 'active')
             ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
@@ -112,48 +114,10 @@ class AttendanceDailyController extends Controller
                 ->where('employee_id', $employee->id)
                 ->first();
 
-            // Jika belum ada record, sinkronkan awal dari log mesin absensi
-            if (! $record) {
-                $dayData = $this->attendanceService->processDay($employee, $date);
+            $record ??= $this->createDailyRecord($employee, $date, $permits);
 
-                $checkIn = $dayData['check_locks']['check_in']
-                    ? $dayData['check_locks']['check_in']['scan_time']->format('H:i:s')
-                    : null;
-                $breakOut = $dayData['check_locks']['break_out']
-                    ? $dayData['check_locks']['break_out']['scan_time']->format('H:i:s')
-                    : null;
-                $breakIn = $dayData['check_locks']['break_in']
-                    ? $dayData['check_locks']['break_in']['scan_time']->format('H:i:s')
-                    : null;
-                $checkOut = $dayData['check_locks']['check_out']
-                    ? $dayData['check_locks']['check_out']['scan_time']->format('H:i:s')
-                    : null;
-
-                $permit = $permits->firstWhere('employee_id', $employee->id);
-                $defaultKet = 'hadir';
-                if ($permit) {
-                    $defaultKet = 'izin';
-                } elseif (! $dayData['present']) {
-                    $defaultKet = $date->isWeekend() ? 'libur' : 'alpha';
-                }
-
-                $record = DailyAttendance::create([
-                    'date' => $dateStr,
-                    'employee_id' => $employee->id,
-                    'check_in' => $checkIn,
-                    'break_out' => $breakOut,
-                    'break_in' => $breakIn,
-                    'check_out' => $checkOut,
-                    'late_check_in_minutes' => $dayData['late_minutes'],
-                    'late_break_in_minutes' => $dayData['late_break_in_minutes'],
-                    'overtime_minutes' => $dayData['overtime_minutes'],
-                    'is_anomaly' => $dayData['is_anomaly'],
-                    'anomaly_reason' => $dayData['anomaly_reason'],
-                    'keterangan' => $defaultKet,
-                    'nominal_izin' => 0,
-                    'tipe_nominal_izin' => null,
-                    'is_fixed' => false,
-                ]);
+            if (($filter === 'anomaly' && ! $record->is_anomaly) || ($filter === 'normal' && $record->is_anomaly)) {
+                continue;
             }
 
             $dailyRecords[] = [
@@ -162,7 +126,7 @@ class AttendanceDailyController extends Controller
             ];
         }
 
-        return view('attendance.daily', compact('compilation', 'dailyRecords', 'dateStr'));
+        return view('attendance.daily', compact('compilation', 'dailyRecords', 'dateStr', 'filter'));
     }
 
     /**
@@ -209,17 +173,6 @@ class AttendanceDailyController extends Controller
         ]);
 
         $dateStr = Carbon::parse($validated['date'])->toDateString();
-
-        if ($validated['status'] === 'fix') {
-            $hasUnfixedAnomalies = DailyAttendance::where('date', $dateStr)
-                ->where('is_anomaly', true)
-                ->where('is_fixed', false)
-                ->exists();
-
-            if ($hasUnfixedAnomalies) {
-                return back()->withErrors(['status' => 'Semua anomali (kuning) harus diselesaikan dan di-FIX terlebih dahulu sebelum status tanggal dapat diubah menjadi FIX.']);
-            }
-        }
 
         $compilation = AttendanceCompilation::firstOrCreate(['date' => $dateStr]);
         $updateData = ['status' => $validated['status']];
@@ -340,6 +293,8 @@ class AttendanceDailyController extends Controller
         $end = $start->copy()->endOfMonth();
         $totalDays = $end->day;
 
+        $permits = Permit::whereBetween('permit_date', [$start->toDateString(), $end->toDateString()])->get();
+
         // Validasi kelengkapan status FIX
         $fixedDatesCount = AttendanceCompilation::whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->where('status', 'fix')
@@ -353,6 +308,14 @@ class AttendanceDailyController extends Controller
             ->with(['golongan', 'jabatan'])
             ->orderBy('name')
             ->get();
+
+        // Payroll must never depend on somebody opening every daily page first.
+        foreach ($employees as $employee) {
+            for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+                $datePermits = $permits->where('permit_date', $date->toDateString());
+                $this->createDailyRecord($employee, $date, $datePermits);
+            }
+        }
 
         $potonganMasters = PotonganTerlambat::all();
 
@@ -479,5 +442,36 @@ class AttendanceDailyController extends Controller
         })->sortByDesc('min_minutes')->first();
 
         return $match ? (float) $match->amount : 0;
+    }
+
+    private function createDailyRecord(Employee $employee, Carbon $date, $permits): DailyAttendance
+    {
+        $dateStr = $date->toDateString();
+        $existing = DailyAttendance::where('date', $dateStr)->where('employee_id', $employee->id)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        $dayData = $this->attendanceService->processDay($employee, $date);
+        $permit = $permits->firstWhere('employee_id', $employee->id);
+        $checkLocks = $dayData['check_locks'];
+
+        return DailyAttendance::create([
+            'date' => $dateStr,
+            'employee_id' => $employee->id,
+            'check_in' => $checkLocks['check_in'] ? $checkLocks['check_in']['scan_time']->format('H:i:s') : null,
+            'break_out' => $checkLocks['break_out'] ? $checkLocks['break_out']['scan_time']->format('H:i:s') : null,
+            'break_in' => $checkLocks['break_in'] ? $checkLocks['break_in']['scan_time']->format('H:i:s') : null,
+            'check_out' => $checkLocks['check_out'] ? $checkLocks['check_out']['scan_time']->format('H:i:s') : null,
+            'late_check_in_minutes' => $dayData['late_minutes'],
+            'late_break_in_minutes' => $dayData['late_break_in_minutes'],
+            'overtime_minutes' => $dayData['overtime_minutes'],
+            'is_anomaly' => $dayData['is_anomaly'],
+            'anomaly_reason' => $dayData['anomaly_reason'],
+            'keterangan' => $permit ? 'izin' : ($dayData['present'] ? 'hadir' : ($date->isWeekend() ? 'libur' : 'alpha')),
+            'nominal_izin' => 0,
+            'tipe_nominal_izin' => null,
+            'is_fixed' => false,
+        ]);
     }
 }

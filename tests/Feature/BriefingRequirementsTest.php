@@ -78,12 +78,14 @@ class BriefingRequirementsTest extends TestCase
         $response->assertOk();
         $response->assertSee('Budi Santoso');
 
-        // Cannot update compilation status to 'fix' while unresolved anomalies exist
+        // Status FIX is allowed without fixing every row individually.
         $statusResponse = $this->post(route('attendance.daily.status'), [
             'date' => '2026-08-10',
             'status' => 'fix',
         ]);
-        $statusResponse->assertSessionHasErrors('status');
+        $statusResponse->assertRedirect();
+        $compilation->refresh();
+        $this->assertSame('fix', $compilation->status);
 
         // Save row with HRD Izin with potong_gaji (ignoring late minutes fine)
         $saveRowResponse = $this->post(route('attendance.daily.save', ['daily' => $daily->id]), [
@@ -102,14 +104,7 @@ class BriefingRequirementsTest extends TestCase
         $this->assertTrue((bool) $daily->is_fixed);
         $this->assertTrue($daily->isLateIgnored());
 
-        // Now compilation can be marked as 'fix'
-        $statusResponseOk = $this->post(route('attendance.daily.status'), [
-            'date' => '2026-08-10',
-            'status' => 'fix',
-        ]);
-        $statusResponseOk->assertRedirect();
-        $compilation->refresh();
-        $this->assertSame('fix', $compilation->status);
+        $this->assertTrue($compilation->fresh()->status === 'fix');
     }
 
     /**

@@ -128,7 +128,7 @@ class AugustTestingSeeder extends Seeder
             0 => $this->row('08:00:00', '12:00:00', '13:00:00', '17:00:00', 'hadir', false, null, ['08:00:00', '12:00:00', '13:00:00', '17:00:00']),
             1 => $this->row('08:25:00', '12:00:00', '13:20:00', '17:30:00', 'hadir', true, 'Telat masuk dan scan di luar batas normal', ['08:25:00', '12:00:00', '13:20:00', '17:30:00'], 25, 20, 30),
             2 => $this->row('08:00:00', '12:00:00', null, '17:00:00', 'hadir', true, 'Jumlah scan kurang dari 4 kali', ['08:00:00', '12:00:00', '17:00:00']),
-            3 => $this->row('08:00:00', '13:00:00', '12:00:00', '17:00:00', 'hadir', true, 'Urutan scan tidak beraturan', ['08:00:00', '13:00:00', '12:00:00', '17:00:00']),
+            3 => $this->row('08:00:00', '12:00:00', '13:00:00', '17:00:00', 'hadir', false, null, ['08:00:00', '12:00:00', '13:00:00', '17:00:00']),
             4 => $this->row(null, null, null, null, 'alpha', true, 'Tidak ada scan absensi', []),
             default => $this->row(null, null, null, null, 'izin', false, null, []),
         };

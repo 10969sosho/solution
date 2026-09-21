@@ -303,11 +303,6 @@ class AttendanceProcessingService
         $rOutStart = $date->copy()->setTimeFromTimeString($ranges['pulang']['start']);
         $rOutEnd = $date->copy()->setTimeFromTimeString($ranges['pulang']['end']);
 
-        // Hormati minBreakIn agar proteksi anti-kecurangan istirahat tetap terjaga
-        if ($minBreakIn->gt($rInBreakStart)) {
-            $rInBreakStart = $minBreakIn->copy();
-        }
-
         $checkLocks = [
             'check_in' => null,
             'break_out' => null,
@@ -332,15 +327,6 @@ class AttendanceProcessingService
         }
         if ($outCandidates->isNotEmpty()) {
             $checkLocks['check_out'] = $this->mapLog($outCandidates->last());
-        }
-
-        // Fallback untuk backward compatibility jika checkLocks ada yang kosong
-        if (!$checkLocks['check_in'] || !$checkLocks['break_out'] || !$checkLocks['break_in'] || !$checkLocks['check_out']) {
-            [$fallbackLocks, $fallbackIgnored] = $this->classifyCheckLocks($logs, $minBreakIn, $breakOutTime);
-            $checkLocks['check_in'] = $checkLocks['check_in'] ?? $fallbackLocks['check_in'];
-            $checkLocks['break_out'] = $checkLocks['break_out'] ?? $fallbackLocks['break_out'];
-            $checkLocks['break_in'] = $checkLocks['break_in'] ?? $fallbackLocks['break_in'];
-            $checkLocks['check_out'] = $checkLocks['check_out'] ?? $fallbackLocks['check_out'];
         }
 
         // Kumpulkan ignored scans

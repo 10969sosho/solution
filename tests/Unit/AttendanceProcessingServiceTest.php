@@ -99,7 +99,7 @@ class AttendanceProcessingServiceTest extends TestCase
         $this->assertSame(30, $result['early_leave_minutes']);
     }
 
-    public function test_break_in_before_1245_is_not_counted_anti_fraud(): void
+    public function test_break_in_at_range_start_is_counted(): void
     {
         $employee = $this->makeEmployee();
         $this->punch($employee, '2026-08-10 08:00:00');
@@ -109,11 +109,9 @@ class AttendanceProcessingServiceTest extends TestCase
 
         $result = $this->service->processDay($employee, Carbon::parse('2026-08-10'));
 
-        // 12:30 tidak boleh jadi break_in
-        $this->assertNotSame('12:30', $result['check_locks']['break_in']['scan_time']->format('H:i'));
-        $this->assertNotEmpty($result['ignored_scans']);
-        // Work = (08:00-12:00)=240 + (17:00-17:00 tanpapunch)... break_in null sehingga tidak ada segmen 2
-        $this->assertSame(240, $result['total_work_minutes']);
+        $this->assertSame('12:30', $result['check_locks']['break_in']['scan_time']->format('H:i'));
+        $this->assertEmpty($result['ignored_scans']);
+        $this->assertSame(510, $result['total_work_minutes']);
     }
 
     public function test_employee_specific_schedule_is_used(): void

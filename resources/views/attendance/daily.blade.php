@@ -23,6 +23,11 @@
             <form method="GET" action="{{ route('attendance.daily') }}" class="flex flex-wrap items-center gap-2">
                 <input type="date" name="date" value="{{ $dateStr }}" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                 <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                <select name="filter" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    <option value="all" {{ $filter === 'all' ? 'selected' : '' }}>Semua data</option>
+                    <option value="anomaly" {{ $filter === 'anomaly' ? 'selected' : '' }}>Anomali</option>
+                    <option value="normal" {{ $filter === 'normal' ? 'selected' : '' }}>Normal</option>
+                </select>
                 <button type="submit" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition">
                     <i class="fas fa-search"></i>
                 </button>
@@ -54,7 +59,7 @@
                 <span class="inline-block w-4 h-4 bg-yellow-300 border border-yellow-500 rounded mr-2"></span>
             </div>
             <div class="text-xs text-amber-900 leading-relaxed">
-                <strong>Deteksi Absen Anomali (Highlight Kuning):</strong> Baris berwarna kuning menandakan data di luar ketentuan (checklock di luar batas jam, scan kurang dari 4 kali, atau urutan tidak beraturan). HRD wajib memeriksa dan menekan tombol <strong>FIX</strong> pada tiap baris setelah verifikasi.
+                <strong>Deteksi Absen Anomali (Highlight Kuning):</strong> Baris berwarna kuning menandakan data di luar ketentuan (checklock di luar batas jam, scan kurang dari 4 kali, atau urutan tidak beraturan). Perbaikan per baris bersifat opsional; status tanggal dapat langsung disimpan lewat tombol di bawah.
             </div>
         </div>
     </div>
