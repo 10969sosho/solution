@@ -44,12 +44,13 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Hari</label>
                 @php
-                    $selectedDays = old('day', $setting->day ? explode(',', $setting->day) : []) ?? [];
+                    $selectedDays = old('day', $setting->day ? explode(',', $setting->day) : []);
+                    $selectedDays = is_array($selectedDays) ? $selectedDays : [];
                 @endphp
                 <div class="grid grid-cols-4 gap-2">
                     @foreach(['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'] as $d)
                     <label class="flex items-center px-3 py-2 border border-gray-300 rounded-lg cursor-pointer hover:border-blue-500">
-                        <input type="checkbox" name="day[]" value="{{ $d }}" {{ in_array($d, $selectedDays) ? 'checked' : '' }}
+                        <input type="checkbox" name="day[]" value="{{ $d }}" {{ in_array($d, $selectedDays, true) ? 'checked' : '' }}
                             class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                         <span class="ml-2 text-sm text-gray-700">{{ $d }}</span>
                     </label>
