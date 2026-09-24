@@ -27,10 +27,7 @@
                 </div>
                  <div>
                      <label class="block text-sm font-medium text-gray-700 mb-1">Golongan</label>
-                     @php
-                         $selectedGolonganIds = old('golongan_ids', $setting->golongans->pluck('id')->push($setting->golongan_id)->filter()->unique()->all());
-                         $selectedGolonganIds = is_array($selectedGolonganIds) ? $selectedGolonganIds : [];
-                     @endphp
+                     @php($selectedGolonganIds = old('golongan_ids', $setting->golongans->pluck('id')->push($setting->golongan_id)->filter()->unique()->all()))
                      <div class="grid grid-cols-2 gap-2 border border-gray-300 rounded-lg p-3">
                          @foreach($golongans as $golongan)
                          <label class="flex items-center gap-2 text-sm">

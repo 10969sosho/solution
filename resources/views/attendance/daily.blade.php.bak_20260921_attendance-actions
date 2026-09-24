@@ -4,9 +4,6 @@
 
 @section('content')
 <div class="container mx-auto px-4 py-6">
-    @if(session('success'))
-        <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{{ session('success') }}</div>
-    @endif
     <!-- Header & Navigasi Tanggal -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
@@ -26,11 +23,6 @@
             <form method="GET" action="{{ route('attendance.daily') }}" class="flex flex-wrap items-center gap-2">
                 <input type="date" name="date" value="{{ $dateStr }}" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                 <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
-                <select name="filter" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
-                    <option value="all" {{ $filter === 'all' ? 'selected' : '' }}>Semua data</option>
-                    <option value="anomaly" {{ $filter === 'anomaly' ? 'selected' : '' }}>Anomali</option>
-                    <option value="normal" {{ $filter === 'normal' ? 'selected' : '' }}>Normal</option>
-                </select>
                 <button type="submit" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition">
                     <i class="fas fa-search"></i>
                 </button>
@@ -62,7 +54,7 @@
                 <span class="inline-block w-4 h-4 bg-yellow-300 border border-yellow-500 rounded mr-2"></span>
             </div>
             <div class="text-xs text-amber-900 leading-relaxed">
-                <strong>Deteksi Absen Anomali (Highlight Kuning):</strong> Baris berwarna kuning menandakan data di luar ketentuan (checklock di luar batas jam, scan kurang dari 4 kali, atau urutan tidak beraturan). Catat izin lewat tombol <strong>Kelola Izin</strong> pada baris karyawan; status tanggal dapat langsung disimpan lewat tombol di bawah tanpa memperbaiki tiap baris.
+                <strong>Deteksi Absen Anomali (Highlight Kuning):</strong> Baris berwarna kuning menandakan data di luar ketentuan (checklock di luar batas jam, scan kurang dari 4 kali, atau urutan tidak beraturan). HRD wajib memeriksa dan menekan tombol <strong>FIX</strong> pada tiap baris setelah verifikasi.
             </div>
         </div>
     </div>
@@ -81,7 +73,9 @@
                     <th class="px-3 py-3 text-center">Telat Masuk</th>
                     <th class="px-3 py-3 text-center">Telat Msk Istirahat</th>
                     <th class="px-3 py-3 text-center">Lembur</th>
-                    <th class="px-4 py-3 text-center">Action</th>
+                    <th class="px-3 py-3 text-center">Keterangan</th>
+                    <th class="px-3 py-3 text-center">Nominal Izin</th>
+                    <th class="px-4 py-3 text-center">Action FIX</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
@@ -90,6 +84,7 @@
                         $emp = $item['employee'];
                         $att = $item['attendance'];
                         $isAnomaly = $att?->is_anomaly ?? false;
+                        $isFixed = $att?->is_fixed ?? false;
                         $isIgnored = $att?->isLateIgnored() ?? false;
                     @endphp
                     <tr class="transition {{ $isAnomaly ? 'bg-yellow-100 hover:bg-yellow-200/80' : 'hover:bg-blue-50/50' }}">
@@ -161,52 +156,45 @@
                             @endif
                         </td>
 
-                        <!-- Action: Kelola Izin + Modal Multiple -->
+                        <!-- Form inline Edit Izin & Keterangan & Action FIX -->
                         @if($att)
-                            @php
-                                $employeePermits = $permitsByEmployee->get($emp->id, collect());
-                            @endphp
-                            <td class="px-3 py-3 text-center">
-                                <button type="button" onclick="openPermitModal('permit-modal-{{ $att->id }}')" class="px-3 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200">
-                                    <i class="fas fa-file-signature mr-1"></i> Kelola Izin
-                                    @if($employeePermits->isNotEmpty())<span class="ml-1 rounded-full bg-blue-600 px-1.5 text-white">{{ $employeePermits->count() }}</span>@endif
-                                </button>
+                            <td colspan="3" class="px-3 py-2">
+                                <form action="{{ route('attendance.daily.save', $att->id) }}" method="POST" class="flex items-center gap-2">
+                                    @csrf
+                                    <!-- Keterangan -->
+                                    <select name="keterangan" class="text-xs rounded border-gray-300 py-1 px-1.5 focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="hadir" {{ $att->keterangan === 'hadir' ? 'selected' : '' }}>Hadir</option>
+                                        <option value="izin" {{ $att->keterangan === 'izin' ? 'selected' : '' }}>Izin</option>
+                                        <option value="libur" {{ $att->keterangan === 'libur' ? 'selected' : '' }}>Libur</option>
+                                        <option value="alpha" {{ $att->keterangan === 'alpha' ? 'selected' : '' }}>Alpha</option>
+                                    </select>
 
-                                <div id="permit-modal-{{ $att->id }}" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/40 p-4" onclick="closePermitModal(event, 'permit-modal-{{ $att->id }}')">
-                                    <div class="w-full max-w-2xl rounded-xl bg-white p-5 text-left shadow-xl" onclick="event.stopPropagation()">
-                                        <div class="flex items-center justify-between border-b pb-3">
-                                            <div><h3 class="font-semibold text-gray-800">Kelola Izin</h3><p class="text-xs text-gray-500">{{ $emp->name }} · {{ \Carbon\Carbon::parse($dateStr)->format('d/m/Y') }}</p></div>
-                                            <button type="button" onclick="closePermitModal(null, 'permit-modal-{{ $att->id }}')" class="text-xl text-gray-400 hover:text-gray-700">&times;</button>
-                                        </div>
-                                        <div class="my-4 space-y-2">
-                                            @forelse($employeePermits as $permit)
-                                                <div class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs">
-                                                    <span>{{ ucfirst(str_replace('_', ' ', $permit->category)) }} · {{ $permit->type === 'no_deduction' ? 'Tidak potong · ' . $permit->duration_minutes . ' menit' : ($permit->type === 'addition' ? 'Tambah gaji · Rp ' . number_format($permit->nominal, 0, ',', '.') : 'Potong gaji · Rp ' . number_format($permit->nominal, 0, ',', '.')) }}</span>
-                                                    <span class="text-gray-500">{{ $permit->reason }}</span>
-                                                </div>
-                                            @empty
-                                                <p class="text-xs text-gray-500">Belum ada izin pada tanggal ini.</p>
-                                            @endforelse
-                                        </div>
-                                        <form action="{{ route('permits.store') }}" method="POST" class="space-y-3 border-t pt-4">
-                                            @csrf
-                                            <input type="hidden" name="source" value="attendance_daily"><input type="hidden" name="employee_id" value="{{ $emp->id }}"><input type="hidden" name="permit_date" value="{{ $dateStr }}">
-                                            <div id="permit-rows-permit-modal-{{ $att->id }}" data-next="0" class="space-y-3"></div>
-                                            <button type="button" onclick="addPermitRow('permit-modal-{{ $att->id }}')" class="w-full rounded border border-dashed border-blue-300 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50">
-                                                <i class="fas fa-plus mr-1"></i> Tambah Izin Lagi
-                                            </button>
-                                            <div class="flex justify-end gap-2"><button type="button" onclick="closePermitModal(null, 'permit-modal-{{ $att->id }}')" class="rounded bg-gray-100 px-4 py-2 text-sm text-gray-700">Batal</button><button class="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Simpan Izin</button></div>
-                                        </form>
-                                    </div>
-                                </div>
+                                    <!-- Tipe Izin & Nominal -->
+                                    <select name="tipe_nominal_izin" class="text-xs rounded border-gray-300 py-1 px-1 focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="">- Tipe Izin -</option>
+                                        <option value="potong_gaji" {{ $att->tipe_nominal_izin === 'potong_gaji' ? 'selected' : '' }}>Potong Gaji</option>
+                                        <option value="tambah_gaji" {{ $att->tipe_nominal_izin === 'tambah_gaji' ? 'selected' : '' }}>Tambah Gaji</option>
+                                    </select>
+
+                                    <input type="number" name="nominal_izin" value="{{ (int) $att->nominal_izin }}" placeholder="Rp" class="w-24 text-xs rounded border-gray-300 py-1 px-1.5 focus:ring-blue-500 focus:border-blue-500">
+
+                                    <input type="hidden" name="is_fixed" value="1">
+                                    <button type="submit" class="px-3 py-1 rounded text-xs font-semibold transition flex items-center shadow-sm {{ $isFixed ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-200 hover:bg-blue-600 hover:text-white text-gray-800' }}">
+                                        @if($isFixed)
+                                            <i class="fas fa-check mr-1 text-[10px]"></i> FIXED
+                                        @else
+                                            <i class="fas fa-check-circle mr-1 text-[10px]"></i> FIX
+                                        @endif
+                                    </button>
+                                </form>
                             </td>
                         @else
-                            <td class="px-3 py-3 text-center text-gray-400">Belum ada record</td>
+                            <td colspan="3" class="px-3 py-3 text-center text-gray-400">Belum ada record</td>
                         @endif
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="px-4 py-8 text-center text-gray-400">Tidak ada data karyawan aktif.</td>
+                        <td colspan="12" class="px-4 py-8 text-center text-gray-400">Tidak ada data karyawan aktif.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -240,77 +228,4 @@
         </form>
     </div>
 </div>
-<template id="permit-row-template">
-    <div class="permit-row rounded-lg border border-gray-200 p-3 space-y-2" data-permit-row>
-        <div class="flex items-center justify-between">
-            <span class="text-[10px] font-semibold uppercase text-gray-400" data-row-label>Izin</span>
-            <button type="button" class="text-xs text-red-500 hover:underline" onclick="removePermitRow(this)">Hapus</button>
-        </div>
-        <input type="hidden" name="__START_TIME__" value="08:00">
-        <input type="hidden" name="__END_TIME__" value="08:15">
-        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <label class="text-xs font-medium text-gray-700">Tipe izin
-                <select name="__CATEGORY__" required class="mt-1 w-full rounded border-gray-300 text-sm"><option value="terlambat">Terlambat</option><option value="pulang_awal">Pulang awal</option><option value="tidak_masuk">Tidak masuk</option></select>
-            </label>
-            <label class="text-xs font-medium text-gray-700">Keterangan izin
-                <select name="__TYPE__" required onchange="togglePermitRowFields(this)" class="mt-1 w-full rounded border-gray-300 text-sm"><option value="salary_deduction">Potong gaji</option><option value="addition">Tambah gaji</option><option value="no_deduction">Tidak potong</option></select>
-            </label>
-            <label class="text-xs font-medium text-gray-700" data-permit-money>Nominal (Rp)<input type="number" name="__NOMINAL__" min="0" step="0.01" required placeholder="Masukkan nominal" class="mt-1 w-full rounded border-gray-300 text-sm"></label>
-            <label class="hidden text-xs font-medium text-gray-700" data-permit-minutes>Menit izin<input type="number" name="__MINUTES__" min="1" placeholder="Masukkan jumlah menit" class="mt-1 w-full rounded border-gray-300 text-sm"></label>
-            <input type="text" name="__REASON__" placeholder="Keterangan izin" required class="rounded border-gray-300 text-sm md:col-span-2">
-        </div>
-    </div>
-</template>
-<script>
-    function openPermitModal(id) {
-        const modal = document.getElementById(id);
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        const wrap = document.getElementById('permit-rows-' + id);
-        if (wrap && wrap.childElementCount === 0) addPermitRow(id);
-    }
-
-    function addPermitRow(modalId) {
-        const wrap = document.getElementById('permit-rows-' + modalId);
-        const tpl = document.getElementById('permit-row-template');
-        const i = parseInt(wrap.dataset.next || '0', 10);
-        wrap.dataset.next = String(i + 1);
-        const p = 'permits[' + i + ']';
-        let html = tpl.innerHTML
-            .replaceAll('__START_TIME__', p + '[start_time]')
-            .replaceAll('__END_TIME__', p + '[end_time]')
-            .replaceAll('__CATEGORY__', p + '[category]')
-            .replaceAll('__TYPE__', p + '[type]')
-            .replaceAll('__NOMINAL__', p + '[nominal]')
-            .replaceAll('__MINUTES__', p + '[permit_minutes]')
-            .replaceAll('__REASON__', p + '[reason]');
-        wrap.insertAdjacentHTML('beforeend', html);
-        const row = wrap.lastElementChild;
-        row.querySelector('[data-row-label]').textContent = 'Izin #' + (i + 1);
-        togglePermitRowFields(row.querySelector('select[name$="[type]"]'));
-    }
-
-    function removePermitRow(btn) {
-        btn.closest('[data-permit-row]').remove();
-    }
-
-    function togglePermitRowFields(select) {
-        const row = select.closest('[data-permit-row]');
-        if (!row) return;
-        const money = row.querySelector('[data-permit-money]');
-        const minutes = row.querySelector('[data-permit-minutes]');
-        const isNoDeduction = select.value === 'no_deduction';
-        money.classList.toggle('hidden', isNoDeduction);
-        minutes.classList.toggle('hidden', !isNoDeduction);
-        money.querySelector('input').required = !isNoDeduction;
-        minutes.querySelector('input').required = isNoDeduction;
-    }
-
-    function closePermitModal(event, id) {
-        if (event && event.target !== event.currentTarget) return;
-        const modal = document.getElementById(id);
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-</script>
 @endsection

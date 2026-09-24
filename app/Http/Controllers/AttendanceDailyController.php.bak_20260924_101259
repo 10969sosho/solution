@@ -10,10 +10,13 @@ use App\Models\PotonganTerlambat;
 use App\Services\AttendanceProcessingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AttendanceDailyController extends Controller
 {
-    public function __construct(private AttendanceProcessingService $attendanceService) {}
+    public function __construct(private AttendanceProcessingService $attendanceService)
+    {
+    }
 
     /**
      * MODUL 5: List Kompilasi Harian
@@ -97,12 +100,12 @@ class AttendanceDailyController extends Controller
         $employees = Employee::query()
             ->where('status', 'active')
             ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
-            ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%'.$request->search.'%'))
+            ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%' . $request->search . '%'))
             ->with(['golongan', 'jabatan'])
             ->orderBy('name')
             ->get();
 
-        $permits = Permit::whereDate('permit_date', $dateStr)->get();
+        $permits = Permit::where('permit_date', $dateStr)->get();
         $permitsByEmployee = $permits->groupBy('employee_id');
 
         // Sinkronkan atau ambil data absensi harian karyawan
@@ -185,7 +188,7 @@ class AttendanceDailyController extends Controller
 
         $compilation->update($updateData);
 
-        return back()->with('success', "Status tanggal {$validated['date']} berhasil diubah menjadi ".strtoupper($validated['status']));
+        return back()->with('success', "Status tanggal {$validated['date']} berhasil diubah menjadi " . strtoupper($validated['status']));
     }
 
     /**
@@ -202,7 +205,7 @@ class AttendanceDailyController extends Controller
         $employees = Employee::query()
             ->where('status', 'active')
             ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
-            ->when($search, fn ($q) => $q->where('name', 'like', '%'.$search.'%'))
+            ->when($search, fn ($q) => $q->where('name', 'like', '%' . $search . '%'))
             ->orderBy('name')
             ->get();
 
@@ -436,7 +439,6 @@ class AttendanceDailyController extends Controller
             if (! is_null($item->max_minutes) && $minutes > $item->max_minutes) {
                 return false;
             }
-
             return true;
         })->sortByDesc('min_minutes')->first();
 
@@ -452,8 +454,7 @@ class AttendanceDailyController extends Controller
         }
 
         $dayData = $this->attendanceService->processDay($employee, $date);
-        $employeePermits = $permits->where('employee_id', $employee->id);
-        $summary = Permit::summaryFor($employeePermits);
+        $permit = $permits->firstWhere('employee_id', $employee->id);
         $checkLocks = $dayData['check_locks'];
 
         return DailyAttendance::create([
@@ -468,11 +469,9 @@ class AttendanceDailyController extends Controller
             'overtime_minutes' => $dayData['overtime_minutes'],
             'is_anomaly' => $dayData['is_anomaly'],
             'anomaly_reason' => $dayData['anomaly_reason'],
-            'keterangan' => $employeePermits->isNotEmpty()
-                ? 'izin'
-                : ($dayData['present'] ? 'hadir' : ($date->isWeekend() ? 'libur' : 'alpha')),
-            'nominal_izin' => $summary['nominal'],
-            'tipe_nominal_izin' => $summary['tipe'],
+            'keterangan' => $permit ? 'izin' : ($dayData['present'] ? 'hadir' : ($date->isWeekend() ? 'libur' : 'alpha')),
+            'nominal_izin' => 0,
+            'tipe_nominal_izin' => null,
             'is_fixed' => false,
         ]);
     }

@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\DB;
 
 class PayrollService
 {
-    public function __construct(private AttendanceProcessingService $attendanceService) {}
+    public function __construct(private AttendanceProcessingService $attendanceService)
+    {
+    }
 
     /**
      * Hitung rincian gaji satu karyawan untuk periode tertentu sesuai Briefing.
@@ -241,16 +243,6 @@ class PayrollService
 
         DB::transaction(function () use ($employees, $year, $month, $manualLoans, &$created) {
             foreach ($employees as $employee) {
-                // Payroll paid tidak boleh diubah, tapi karyawan lain tetap digenerate (bukan 500).
-                $paidExists = Payroll::where('employee_id', $employee->id)
-                    ->where('period_year', $year)
-                    ->where('period_month', $month)
-                    ->where('status', 'paid')
-                    ->exists();
-                if ($paidExists) {
-                    continue;
-                }
-
                 $manualLoan = isset($manualLoans[$employee->id]) ? (float) $manualLoans[$employee->id] : null;
                 $created[] = $this->generate($employee, $year, $month, $manualLoan);
             }
@@ -262,7 +254,6 @@ class PayrollService
     public function markPaid(Payroll $payroll): Payroll
     {
         $payroll->update(['status' => 'paid']);
-
         return $payroll;
     }
 
@@ -396,9 +387,7 @@ class PayrollService
         $totalDeduction = 0;
 
         foreach ($attendance['daily_details'] as $day) {
-            if (! $day['present']) {
-                continue;
-            }
+            if (!$day['present']) continue;
 
             $date = $day['date'];
             $lateMinutes = $day['late_minutes'];
@@ -463,9 +452,7 @@ class PayrollService
         $daysLateBreakIn = 0;
 
         foreach ($attendance['daily_details'] as $day) {
-            if (! $day['present']) {
-                continue;
-            }
+            if (!$day['present']) continue;
 
             $date = $day['date'];
             $dayPermits = $permits->filter(fn ($p) => $p->permit_date->toDateString() === $date);

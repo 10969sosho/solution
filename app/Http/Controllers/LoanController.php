@@ -31,13 +31,13 @@ class LoanController extends Controller
     public function create()
     {
         $employees = Employee::where('status', 'active')->orderBy('name')->get();
-        
+
         // Calculate totals for each employee
         $employeesWithTotals = $employees->map(function ($employee) {
-            $previousLoansTotal = $employee->loans()->where('status', '!=' , 'paid')
+            $previousLoansTotal = $employee->loans()->where('status', '!=', 'paid')
                 ->sum('principal');
             $allLoansTotal = $employee->loans()->sum('principal');
-            
+
             return (object) [
                 'employee' => $employee,
                 'previous_loans_total' => $previousLoansTotal,
@@ -100,6 +100,7 @@ class LoanController extends Controller
     public function show(Loan $loan)
     {
         $loan->load(['employee', 'payments']);
+
         return view('loans.show', compact('loan'));
     }
 
@@ -126,6 +127,7 @@ class LoanController extends Controller
     public function destroy(Loan $loan)
     {
         $loan->delete();
+
         return redirect()->route('loans.index')->with('success', 'Pinjaman berhasil dihapus');
     }
 
@@ -148,7 +150,7 @@ class LoanController extends Controller
         $mutasi = [];
 
         foreach ($employees as $employee) {
-            $loans = $employee->loans()->orderBy('loan_date')->get();
+            $loans = $employee->loans()->with('payments')->orderBy('loan_date')->get();
 
             foreach ($loans as $loan) {
                 $payments = $loan->payments()->orderBy('payment_date')->get();
@@ -196,14 +198,14 @@ class LoanController extends Controller
         $reportMonthName = $monthNames[$month];
 
         foreach ($employees as $employee) {
-            $loans = $employee->loans()->orderBy('loan_date')->get();
+            $loans = $employee->loans()->with('payments')->orderBy('loan_date')->get();
 
             $periodStart = now()->setDate($year, $month, 1)->startOfMonth();
             $sisaBefore = $loans->filter(fn ($loan) => $loan->loan_date->lt($periodStart))
-                ->sum('principal') - Payroll::where('employee_id', $employee->id)
-                    ->where(fn ($q) => $q->where('period_year', '<', $year)
-                        ->orWhere(fn ($q) => $q->where('period_year', $year)->where('period_month', '<', $month)))
-                    ->sum('pinjaman_deduction');
+                ->sum('principal') - $loans->filter(fn ($loan) => $loan->loan_date->lt($periodStart))
+                ->flatMap(fn ($loan) => $loan->payments)
+                ->filter(fn ($payment) => $payment->payment_date->lt($periodStart))
+                ->sum('amount');
 
             $bonMonth = $loans->filter(fn ($loan) => $loan->loan_date->year === $year && $loan->loan_date->month === $month)
                 ->sum('principal');

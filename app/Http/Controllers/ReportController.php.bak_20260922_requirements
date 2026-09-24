@@ -3,16 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\WorkSetting;
 use App\Models\Permit;
 use App\Models\PotonganTerlambat;
-use App\Models\WorkSetting;
 use App\Services\AttendanceProcessingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
-    public function __construct(private AttendanceProcessingService $attendanceService) {}
+    public function __construct(private AttendanceProcessingService $attendanceService)
+    {
+    }
 
     public function monthly(Request $request)
     {
@@ -114,7 +116,7 @@ class ReportController extends Controller
             ->when($employeeId, fn ($q) => $q->where('id', $employeeId))
             ->orderBy('name');
 
-        $employees = $query->with(['jabatan', 'golongan', 'lokasi'])->get();
+        $employees = $query->get();
 
         $start = Carbon::parse($startDate);
         $end = Carbon::parse($endDate);
@@ -127,15 +129,12 @@ class ReportController extends Controller
             $totalLateMinutes = 0;
             $totalEarlyLeaveMinutes = 0;
 
-            $permitsByDate = Permit::where('employee_id', $employee->id)
-                ->whereBetween('permit_date', [$start->toDateString(), $end->toDateString()])
-                ->get()
-                ->groupBy(fn ($permit) => $permit->permit_date->toDateString());
-
             for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
                 $day = $this->attendanceService->processDay($employee, $date->copy());
 
-                $permits = $permitsByDate->get($date->toDateString(), collect());
+                $permits = Permit::where('employee_id', $employee->id)
+                    ->where('permit_date', $date->toDateString())
+                    ->get();
 
                 $izinNoDeduction = $permits->where('type', 'no_deduction')->sum('duration_minutes');
                 $izinSalaryDeduction = $permits->where('type', 'salary_deduction')->sum('duration_minutes');
@@ -144,7 +143,6 @@ class ReportController extends Controller
 
                 $dailyDetails[] = [
                     'date' => $date->toDateString(),
-                    'status' => $this->attendanceStatus($day, $permits),
                     'check_in' => $day['check_locks']['check_in']
                         ? $day['check_locks']['check_in']['scan_time']->format('H:i')
                         : '-',
@@ -157,9 +155,8 @@ class ReportController extends Controller
                     'break_in' => $day['check_locks']['break_in']
                         ? $day['check_locks']['break_in']['scan_time']->format('H:i')
                         : '-',
-                    'work_minutes' => $this->spanMinutes($day),
+                    'work_minutes' => $day['total_work_minutes'],
                     'late_minutes' => $day['late_minutes'],
-                    'late_break_in_minutes' => $day['late_break_in_minutes'],
                     'early_leave_minutes' => $day['early_leave_minutes'],
                     'izin_no_deduction' => $izinNoDeduction,
                     'izin_salary_deduction' => $izinSalaryDeduction,
@@ -215,7 +212,7 @@ class ReportController extends Controller
             ->when($employeeId, fn ($q) => $q->where('id', $employeeId))
             ->orderBy('name');
 
-        $employees = $query->with(['jabatan', 'golongan', 'lokasi'])->get();
+        $employees = $query->get();
 
         $start = Carbon::parse($startDate);
         $end = Carbon::parse($endDate);
@@ -228,30 +225,19 @@ class ReportController extends Controller
             $totalIzinTerlambat = 0;
             $totalIzinPulangAwal = 0;
             $totalLateMinutes = 0;
-            $totalLateBreakInMinutes = 0;
-            $totalEarlyLeaveMinutes = 0;
-
-            $permitsByDate = Permit::where('employee_id', $employee->id)
-                ->whereBetween('permit_date', [$start->toDateString(), $end->toDateString()])
-                ->get()
-                ->groupBy(fn ($permit) => $permit->permit_date->toDateString());
 
             for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
                 $day = $this->attendanceService->processDay($employee, $date->copy());
 
-                $permits = $permitsByDate->get($date->toDateString(), collect());
-                $latePermits = $permits->where('category', 'terlambat');
-                $lateInPermit = $latePermits->whereIn('late_type', [null, 'masuk_kerja'])->sum('late_minutes');
-                $lateBreakPermit = $latePermits->where('late_type', 'setelah_istirahat')->sum('late_minutes');
-                $earlyPermit = $permits->where('category', 'pulang_awal')->sum('duration_minutes');
+                $permits = Permit::where('employee_id', $employee->id)
+                    ->where('permit_date', $date->toDateString())
+                    ->get();
 
                 $totalIzinNoDeduction += $permits->where('type', 'no_deduction')->sum('duration_minutes');
                 $totalIzinSalaryDeduction += $permits->where('type', 'salary_deduction')->sum('duration_minutes');
-                $totalIzinTerlambat += $lateInPermit;
-                $totalIzinPulangAwal += $earlyPermit;
-                $totalLateMinutes += max(0, $day['late_minutes'] - $lateInPermit);
-                $totalLateBreakInMinutes += max(0, $day['late_break_in_minutes'] - $lateBreakPermit);
-                $totalEarlyLeaveMinutes += max(0, $day['early_leave_minutes'] - $earlyPermit);
+                $totalIzinTerlambat += $permits->where('category', 'terlambat')->sum('late_minutes');
+                $totalIzinPulangAwal += $permits->where('category', 'pulang_awal')->sum('duration_minutes');
+                $totalLateMinutes += $day['late_minutes'];
             }
 
             $summary[] = [
@@ -261,8 +247,6 @@ class ReportController extends Controller
                 'total_izin_terlambat' => $totalIzinTerlambat,
                 'total_izin_pulang_awal' => $totalIzinPulangAwal,
                 'total_late_minutes' => $totalLateMinutes,
-                'total_late_break_in_minutes' => $totalLateBreakInMinutes,
-                'total_early_leave_minutes' => $totalEarlyLeaveMinutes,
                 'total_terlambat_dengan_izin' => $totalIzinTerlambat,
                 'total_terlambat_potong_gaji' => $totalLateMinutes,
             ];
@@ -282,27 +266,6 @@ class ReportController extends Controller
             'positions',
             'employees'
         ));
-    }
-
-    private function spanMinutes(array $day): int
-    {
-        $checkIn = $day['check_locks']['check_in']['scan_time'] ?? null;
-        $checkOut = $day['check_locks']['check_out']['scan_time'] ?? null;
-
-        return $checkIn && $checkOut ? (int) $checkIn->diffInMinutes($checkOut) : 0;
-    }
-
-    private function attendanceStatus(array $day, $permits): string
-    {
-        if ($permits->isNotEmpty()) {
-            return 'Izin';
-        }
-
-        if ($day['present']) {
-            return $day['is_anomaly'] ? 'Anomali' : 'Hadir';
-        }
-
-        return 'Alpha';
     }
 
     /**

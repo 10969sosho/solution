@@ -5,15 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\Permit;
 use App\Models\PotonganTerlambat;
+use App\Models\AttendanceLog;
 use App\Models\WorkSetting;
 use App\Services\AttendanceProcessingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class PermitController extends Controller
 {
-    public function __construct(private AttendanceProcessingService $attendanceService) {}
+    public function __construct(private AttendanceProcessingService $attendanceService)
+    {
+    }
 
     public function index(Request $request)
     {
@@ -52,16 +54,11 @@ class PermitController extends Controller
     {
         $employees = Employee::where('status', 'active')->orderBy('name')->get();
         $potonganTerlamats = PotonganTerlambat::with('golongan')->get();
-
         return view('permits.create', compact('employees', 'potonganTerlamats'));
     }
 
     public function store(Request $request)
     {
-        if ($request->has('permits')) {
-            return $this->storeMultiple($request);
-        }
-
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'category' => 'required|in:tidak_masuk,terlambat,pulang_awal',
@@ -72,103 +69,21 @@ class PermitController extends Controller
             'reason' => 'required|string|max:500',
             'location' => 'nullable|string|max:255',
             'position' => 'nullable|string|max:255',
-            'type' => 'nullable|in:no_deduction,salary_deduction,addition',
-            'deduction_type' => 'nullable|in:no_deduction,salary_deduction',
+            'deduction_type' => 'required|in:no_deduction,salary_deduction',
             'deduction_hours' => 'nullable|integer|min:0',
             'deduction_minutes' => 'nullable|integer|min:0',
             'late_minutes' => 'nullable|integer|min:1',
             'late_fine_amount' => 'nullable|numeric|min:0',
-            'nominal' => 'nullable|numeric|min:0|required_if:type,addition,salary_deduction',
-            'permit_minutes' => 'nullable|integer|min:1|required_if:type,no_deduction',
         ]);
 
         $duration = $this->durationInMinutes($validated['start_time'], $validated['end_time']);
-        $validated['duration_minutes'] = ($validated['type'] ?? null) === 'no_deduction'
-            ? (int) $validated['permit_minutes']
-            : $duration;
-        unset($validated['permit_minutes']);
-        $validated['nominal'] = $validated['nominal'] ?? 0;
-        $validated['type'] = $validated['type'] ?? $this->determineType($duration, $validated['deduction_type'] ?? 'no_deduction');
+        $validated['duration_minutes'] = $duration;
+        $validated['type'] = $this->determineType($duration, $validated['deduction_type']);
         $validated['status'] = 'approved';
 
         Permit::create($validated);
-        Permit::syncDailyAttendance((int) $validated['employee_id'], Carbon::parse($validated['permit_date'])->toDateString());
-
-        if ($request->input('source') === 'attendance_daily') {
-            return redirect()->route('attendance.daily', ['date' => $validated['permit_date']])
-                ->with('success', 'Izin berhasil ditambahkan');
-        }
 
         return redirect()->route('permits.index')->with('success', 'Izin berhasil dicatat');
-    }
-
-    /**
-     * Modal Absen Daily: multiple izin untuk 1 karyawan + 1 tanggal.
-     */
-    private function storeMultiple(Request $request)
-    {
-        $rules = [
-            'employee_id' => 'required|exists:employees,id',
-            'permit_date' => 'required|date',
-            'source' => 'nullable|string',
-            'permits' => 'required|array|min:1',
-            'permits.*.category' => 'required|in:tidak_masuk,terlambat,pulang_awal',
-            'permits.*.type' => 'required|in:no_deduction,salary_deduction,addition',
-            'permits.*.start_time' => 'required|date_format:H:i',
-            'permits.*.end_time' => 'required|date_format:H:i|after:start_time',
-            'permits.*.reason' => 'required|string|max:500',
-        ];
-
-        $rows = $request->input('permits', []);
-        if (is_array($rows)) {
-            foreach (array_keys($rows) as $i) {
-                $type = $rows[$i]['type'] ?? null;
-                $rules["permits.$i.nominal"] = [
-                    'nullable',
-                    'numeric',
-                    'min:0',
-                    Rule::requiredIf(in_array($type, ['salary_deduction', 'addition'], true)),
-                ];
-                $rules["permits.$i.permit_minutes"] = [
-                    'nullable',
-                    'integer',
-                    'min:1',
-                    Rule::requiredIf($type === 'no_deduction'),
-                ];
-            }
-        }
-
-        $validated = $request->validate($rules);
-
-        $count = 0;
-        foreach ($validated['permits'] as $row) {
-            $duration = $this->durationInMinutes($row['start_time'], $row['end_time']);
-            Permit::create([
-                'employee_id' => $validated['employee_id'],
-                'permit_date' => $validated['permit_date'],
-                'category' => $row['category'],
-                'type' => $row['type'],
-                'start_time' => $row['start_time'],
-                'end_time' => $row['end_time'],
-                'duration_minutes' => $row['type'] === 'no_deduction'
-                    ? (int) $row['permit_minutes']
-                    : $duration,
-                'nominal' => (float) ($row['nominal'] ?? 0),
-                'reason' => $row['reason'],
-                'status' => 'approved',
-            ]);
-            $count++;
-        }
-
-        $dateStr = Carbon::parse($validated['permit_date'])->toDateString();
-        Permit::syncDailyAttendance((int) $validated['employee_id'], $dateStr);
-
-        if (($validated['source'] ?? null) === 'attendance_daily') {
-            return redirect()->route('attendance.daily', ['date' => $dateStr])
-                ->with('success', "{$count} izin berhasil ditambahkan");
-        }
-
-        return redirect()->route('permits.index')->with('success', "{$count} izin berhasil dicatat");
     }
 
     public function storeBulk(Request $request)
@@ -186,7 +101,6 @@ class PermitController extends Controller
         ]);
 
         $created = 0;
-        $synced = [];
         foreach ($validated['permits'] as $permitData) {
             $employee = Employee::find($permitData['employee_id']);
             $workSetting = WorkSetting::getActiveForGolongan($employee->golongan_id, Carbon::parse($permitData['permit_date']));
@@ -199,12 +113,7 @@ class PermitController extends Controller
             $permitData['reason'] = $permitData['reason'] ?? 'Diproses dari laporan absensi';
 
             Permit::create($permitData);
-            $synced[] = [(int) $permitData['employee_id'], Carbon::parse($permitData['permit_date'])->toDateString()];
             $created++;
-        }
-
-        foreach ($synced as [$employeeId, $dateStr]) {
-            Permit::syncDailyAttendance($employeeId, $dateStr);
         }
 
         return redirect()->route('permits.index')->with('success', "{$created} izin berhasil dicatat");
@@ -217,18 +126,13 @@ class PermitController extends Controller
         ]);
 
         $permit->update($validated);
-        Permit::syncDailyAttendance((int) $permit->employee_id, $permit->permit_date->toDateString());
 
         return redirect()->route('permits.index')->with('success', 'Status izin diperbarui');
     }
 
     public function destroy(Permit $permit)
     {
-        $employeeId = (int) $permit->employee_id;
-        $dateStr = $permit->permit_date->toDateString();
         $permit->delete();
-        Permit::syncDailyAttendance($employeeId, $dateStr);
-
         return redirect()->route('permits.index')->with('success', 'Izin berhasil dihapus');
     }
 
@@ -245,17 +149,13 @@ class PermitController extends Controller
 
         foreach ($employees as $employee) {
             for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
-                if ($date->isWeekend()) {
-                    continue;
-                }
+                if ($date->isWeekend()) continue;
 
                 $existingPermit = Permit::where('employee_id', $employee->id)
                     ->where('permit_date', $date->toDateString())
                     ->exists();
 
-                if ($existingPermit) {
-                    continue;
-                }
+                if ($existingPermit) continue;
 
                 $day = $this->attendanceService->processDay($employee, $date->copy());
 
@@ -284,7 +184,6 @@ class PermitController extends Controller
         if ($deductionType === 'salary_deduction') {
             return Permit::TYPE_SALARY_DEDUCTION;
         }
-
         return $durationMinutes > 30
             ? Permit::TYPE_SALARY_DEDUCTION
             : Permit::TYPE_NO_DEDUCTION;
