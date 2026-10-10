@@ -128,7 +128,7 @@ class AttendanceDailyController extends Controller
     }
 
     /**
-     * Action FIX per baris karyawan & update Izin (Potong/Tambah Gaji)
+     * Action FIX per baris karyawan & update Izin / Jam / Keterangan
      */
     public function saveRow(Request $request, DailyAttendance $daily)
     {
@@ -136,16 +136,41 @@ class AttendanceDailyController extends Controller
             'keterangan' => 'required|in:hadir,izin,libur,alpha',
             'tipe_nominal_izin' => 'nullable|in:potong_gaji,tambah_gaji,tidak_potong',
             'nominal_izin' => 'nullable|numeric|min:0',
+            'check_in' => 'nullable|date_format:H:i',
+            'break_out' => 'nullable|date_format:H:i',
+            'break_in' => 'nullable|date_format:H:i',
+            'check_out' => 'nullable|date_format:H:i',
+            'overtime_minutes' => 'nullable|integer|min:0',
+            'anomaly_reason' => 'nullable|string|max:500',
             'is_fixed' => 'nullable|boolean',
         ]);
 
         $isFixed = $request->has('is_fixed') ? (bool) $request->is_fixed : true;
         $updateData = [
             'keterangan' => $validated['keterangan'],
-            'tipe_nominal_izin' => $validated['tipe_nominal_izin'] ?? null,
-            'nominal_izin' => $validated['nominal_izin'] ?? 0,
+            'tipe_nominal_izin' => $validated['tipe_nominal_izin'] ?? $daily->tipe_nominal_izin,
+            'nominal_izin' => $validated['nominal_izin'] ?? $daily->nominal_izin,
             'is_fixed' => $isFixed,
         ];
+
+        if ($request->has('check_in')) {
+            $updateData['check_in'] = $validated['check_in'] ? $validated['check_in'] . ':00' : null;
+        }
+        if ($request->has('break_out')) {
+            $updateData['break_out'] = $validated['break_out'] ? $validated['break_out'] . ':00' : null;
+        }
+        if ($request->has('break_in')) {
+            $updateData['break_in'] = $validated['break_in'] ? $validated['break_in'] . ':00' : null;
+        }
+        if ($request->has('check_out')) {
+            $updateData['check_out'] = $validated['check_out'] ? $validated['check_out'] . ':00' : null;
+        }
+        if ($request->has('overtime_minutes')) {
+            $updateData['overtime_minutes'] = (int) $validated['overtime_minutes'];
+        }
+        if ($request->has('anomaly_reason')) {
+            $updateData['anomaly_reason'] = $validated['anomaly_reason'];
+        }
 
         if ($isFixed) {
             $updateData['is_anomaly'] = false;
@@ -302,7 +327,6 @@ class AttendanceDailyController extends Controller
 
         $employees = Employee::query()
             ->where('status', 'active')
-            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
             ->with(['golongan', 'jabatan'])
             ->orderBy('name')
             ->get();
@@ -328,7 +352,7 @@ class AttendanceDailyController extends Controller
             $totalLateBreakInMinutes = 0;
             $nominalIzinTambah = 0;
             $nominalIzinPotong = 0;
-            $totalLiburDays = 0;
+            $totalLiburDays = 0.0;
             $totalOvertimeMinutes = 0;
 
             foreach ($dailies as $d) {
@@ -345,7 +369,13 @@ class AttendanceDailyController extends Controller
                 }
 
                 if ($d->keterangan === 'libur') {
-                    $totalLiburDays++;
+                    $dateStr = $d->date instanceof \DateTimeInterface ? $d->date->format('Y-m-d') : substr((string) $d->date, 0, 10);
+                    $p = $permits->first(fn ($item) => $item->employee_id == $employee->id && $item->permit_date->format('Y-m-d') === $dateStr && $item->type === \App\Models\Permit::TYPE_LIBUR);
+                    if ($p && $p->leave_duration === 'setengah_hari') {
+                        $totalLiburDays += 0.5;
+                    } else {
+                        $totalLiburDays += 1.0;
+                    }
                 }
 
                 $totalOvertimeMinutes += $d->overtime_minutes;
@@ -356,8 +386,8 @@ class AttendanceDailyController extends Controller
             $nominalPotonganSetelahIstirahat = $this->lookupPotonganFine($employee, $totalLateBreakInMinutes, 'setelah_istirahat', $potonganMasters);
             $totalNominalTerlambat = $nominalPotonganMasukKerja + $nominalPotonganSetelahIstirahat;
 
-            // Aturan Jatah Libur & Potongan Masuk
-            $quota = $employee->getEffectiveLeaveQuota();
+            // Aturan Jatah Libur & Potongan Masuk (reset tiap tanggal 1 tanpa menghilangkan sisa libur bulan lalu)
+            $quota = $employee->getEffectiveLeaveQuotaForMonth($year, $month);
             $hariPotongMasuk = max(0, $totalLiburDays - $quota);
             $sisaLibur = max(0, $quota - $totalLiburDays);
 

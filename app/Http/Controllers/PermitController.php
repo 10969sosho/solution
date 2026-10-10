@@ -64,7 +64,7 @@ class PermitController extends Controller
 
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
-            'category' => 'required|in:tidak_masuk,terlambat,pulang_awal',
+            'category' => 'required|in:tidak_masuk,terlambat,pulang_awal,libur',
             'late_type' => 'nullable|in:masuk_kerja,setelah_istirahat',
             'permit_date' => 'required|date',
             'start_time' => 'required|date_format:H:i',
@@ -72,7 +72,8 @@ class PermitController extends Controller
             'reason' => 'required|string|max:500',
             'location' => 'nullable|string|max:255',
             'position' => 'nullable|string|max:255',
-            'type' => 'nullable|in:no_deduction,salary_deduction,addition',
+            'type' => 'nullable|in:no_deduction,salary_deduction,addition,libur',
+            'leave_duration' => 'nullable|in:1_hari,setengah_hari',
             'deduction_type' => 'nullable|in:no_deduction,salary_deduction',
             'deduction_hours' => 'nullable|integer|min:0',
             'deduction_minutes' => 'nullable|integer|min:0',
@@ -112,10 +113,11 @@ class PermitController extends Controller
             'permit_date' => 'required|date',
             'source' => 'nullable|string',
             'permits' => 'required|array|min:1',
-            'permits.*.category' => 'required|in:tidak_masuk,terlambat,pulang_awal',
-            'permits.*.type' => 'required|in:no_deduction,salary_deduction,addition',
-            'permits.*.start_time' => 'required|date_format:H:i',
-            'permits.*.end_time' => 'required|date_format:H:i|after:start_time',
+            'permits.*.category' => 'required|in:tidak_masuk,terlambat,pulang_awal,libur',
+            'permits.*.type' => 'required|in:no_deduction,salary_deduction,addition,libur',
+            'permits.*.leave_duration' => 'nullable|in:1_hari,setengah_hari',
+            'permits.*.start_time' => 'nullable|date_format:H:i',
+            'permits.*.end_time' => 'nullable|date_format:H:i',
             'permits.*.reason' => 'required|string|max:500',
         ];
 
@@ -142,16 +144,19 @@ class PermitController extends Controller
 
         $count = 0;
         foreach ($validated['permits'] as $row) {
-            $duration = $this->durationInMinutes($row['start_time'], $row['end_time']);
+            $startTime = $row['start_time'] ?? '08:00';
+            $endTime = $row['end_time'] ?? '17:00';
+            $duration = $this->durationInMinutes($startTime, $endTime);
             Permit::create([
                 'employee_id' => $validated['employee_id'],
                 'permit_date' => $validated['permit_date'],
                 'category' => $row['category'],
                 'type' => $row['type'],
-                'start_time' => $row['start_time'],
-                'end_time' => $row['end_time'],
+                'leave_duration' => $row['leave_duration'] ?? null,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
                 'duration_minutes' => $row['type'] === 'no_deduction'
-                    ? (int) $row['permit_minutes']
+                    ? (int) ($row['permit_minutes'] ?? $duration)
                     : $duration,
                 'nominal' => (float) ($row['nominal'] ?? 0),
                 'reason' => $row['reason'],

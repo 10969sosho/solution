@@ -66,6 +66,7 @@
                     <th class="px-3 py-3 text-right">Bonus Libur</th>
                     <th class="px-3 py-3 text-right">Pot. Masuk</th>
                     <th class="px-4 py-3 text-center">Pot. Pinjaman (Manual)</th>
+                    <th class="px-3 py-3 text-right">Sisa Pinjaman</th>
                     <th class="px-4 py-3 text-right font-bold text-gray-900">Grand Total</th>
                     <th class="px-2 py-3 text-center">Metode</th>
                     <th class="px-3 py-3 text-center">Aksi</th>
@@ -75,16 +76,17 @@
                 @forelse($payrolls as $payroll)
                     @php
                         $emp = $payroll->employee;
-                        $isConfidential = $emp?->isConfidential();
-                        $canSee = auth()->user()->isSuperAdmin() || !$isConfidential;
+                        $isMandorAdmin = $emp?->isMandorOrAdmin();
+                        $canSee = auth()->user()->isSuperAdmin() || !$isMandorAdmin;
+                        $sisaPinjaman = $emp?->getTotalRemainingLoan() ?? 0;
                     @endphp
                     <tr class="hover:bg-blue-50/50 transition">
                         <td class="px-3 py-3 font-medium text-gray-900">
                             <div>{{ $emp->name }}</div>
                             <div class="text-[10px] text-gray-500">
                                 {{ $emp->position ?? $emp->department ?? 'Karyawan' }}
-                                @if($isConfidential)
-                                    <span class="ml-1 text-[9px] px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 font-semibold">Khusus</span>
+                                @if($isMandorAdmin)
+                                    <span class="ml-1 text-[9px] px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 font-semibold">Mandor/Admin</span>
                                 @endif
                             </div>
                         </td>
@@ -146,7 +148,9 @@
 
                         <!-- Input Manual Potongan Pinjaman -->
                         <td class="px-4 py-2 text-center">
-                            @if($payroll->status !== 'paid')
+                            @if(!$canSee)
+                                ••••••
+                            @elseif($payroll->status !== 'paid')
                                 <form action="{{ route('payrolls.updateLoan', $payroll->id) }}" method="POST" class="flex items-center justify-center gap-1">
                                     @csrf
                                     <input type="number" name="pinjaman_deduction" value="{{ (int) $payroll->pinjaman_deduction }}" class="w-24 text-xs font-mono rounded border-gray-300 py-1 px-1.5 focus:ring-blue-500 focus:border-blue-500 text-right">
@@ -157,6 +161,11 @@
                             @else
                                 <span class="font-mono text-gray-700">-Rp {{ number_format($payroll->pinjaman_deduction, 0, ',', '.') }}</span>
                             @endif
+                        </td>
+
+                        <!-- Sisa Pinjaman -->
+                        <td class="px-3 py-3 text-right font-mono text-gray-700">
+                            {{ $canSee ? ($sisaPinjaman > 0 ? 'Rp ' . number_format($sisaPinjaman, 0, ',', '.') : '-') : '••••••' }}
                         </td>
 
                         <!-- Grand Total Gaji -->
@@ -175,9 +184,15 @@
 
                         <!-- Action -->
                         <td class="px-3 py-3 text-center space-x-1 whitespace-nowrap">
-                            <a href="{{ route('payrolls.show', $payroll->id) }}" class="inline-flex items-center px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-xs font-semibold transition">
-                                <i class="fas fa-file-invoice mr-1"></i> Slip
-                            </a>
+                            @if($canSee)
+                                <a href="{{ route('payrolls.show', $payroll->id) }}" class="inline-flex items-center px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-xs font-semibold transition" title="Cetak / Lihat Slip Gaji">
+                                    <i class="fas fa-file-invoice mr-1"></i> Slip
+                                </a>
+                            @else
+                                <span class="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-400 rounded text-xs font-semibold cursor-not-allowed" title="Akses slip khusus Owner">
+                                    <i class="fas fa-lock mr-1"></i> Slip
+                                </span>
+                            @endif
                             @if($payroll->status !== 'paid' && auth()->user()->isSuperAdmin())
                                 <form action="{{ route('payrolls.paid', $payroll->id) }}" method="POST" class="inline" onsubmit="return confirm('Tandai gaji ini sudah dibayarkan?')">
                                     @csrf
@@ -190,7 +205,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="14" class="px-4 py-8 text-center text-gray-400">
+                        <td colspan="15" class="px-4 py-8 text-center text-gray-400">
                             Belum ada payroll untuk periode ini. Klik tombol <strong>Hitung Ulang Payroll</strong> di atas.
                         </td>
                     </tr>

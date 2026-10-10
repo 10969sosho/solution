@@ -67,7 +67,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Sisa Bulan Sebelumnya</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Bon Bulan Ini</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Bayar {{ $reportMonthName }}</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Potong Gaji 1 {{ $nextMonthName }}</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Sisa Akhir</th>
                     </tr>
                 </thead>

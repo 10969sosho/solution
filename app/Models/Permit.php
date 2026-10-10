@@ -12,6 +12,8 @@ class Permit extends Model
 
     public const TYPE_ADDITION = 'addition';
 
+    public const TYPE_LIBUR = 'libur';
+
     protected $fillable = [
         'employee_id',
         'category',
@@ -19,6 +21,7 @@ class Permit extends Model
         'position',
         'permit_date',
         'type',
+        'leave_duration',
         'start_time',
         'end_time',
         'duration_minutes',
@@ -110,8 +113,9 @@ class Permit extends Model
         }
 
         $summary = static::summaryFor($permits);
+        $hasLibur = $permits->contains('type', self::TYPE_LIBUR);
         $record->update([
-            'keterangan' => 'izin',
+            'keterangan' => $hasLibur ? 'libur' : 'izin',
             'tipe_nominal_izin' => $summary['tipe'],
             'nominal_izin' => $summary['nominal'],
         ]);

@@ -68,6 +68,9 @@
                         <a href="{{ route('attendance.compilation') }}" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->routeIs('attendance.compilation') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-calendar-alt w-5"></i><span class="ml-3">List Kompilasi</span>
                         </a>
+                        <a href="{{ route('attendance.night-guard') }}" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->routeIs('attendance.night-guard*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-moon w-5"></i><span class="ml-3">Jaga Malam</span>
+                        </a>
                         <a href="{{ route('attendance.daily') }}" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->routeIs('attendance.daily') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-user-clock w-5"></i><span class="ml-3">Absen Daily</span>
                         </a>

@@ -29,11 +29,29 @@ class RoleTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_admin_operasional_cannot_access_payroll(): void
+    public function test_admin_operasional_can_access_payroll_but_cannot_access_mandor_slip(): void
     {
         $this->loginAsAdminOperasional();
 
-        $this->get(route('payrolls.index'))->assertForbidden();
+        $this->get(route('payrolls.index'))->assertOk();
+
+        $mandor = Employee::create([
+            'employee_id' => 'M001',
+            'name' => 'Karyawan Mandor',
+            'position' => 'Mandor',
+            'salary' => 5000000,
+            'status' => 'active',
+        ]);
+
+        $payroll = \App\Models\Payroll::create([
+            'employee_id' => $mandor->id,
+            'period_year' => now()->year,
+            'period_month' => now()->month,
+            'base_salary' => 5000000,
+            'grand_total' => 5000000,
+        ]);
+
+        $this->get(route('payrolls.show', $payroll->id))->assertForbidden();
     }
 
     public function test_super_admin_can_access_payroll(): void

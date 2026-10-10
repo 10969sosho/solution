@@ -26,17 +26,22 @@ class User extends Authenticatable
 
     public function isSuperAdmin(): bool
     {
-        return $this->role === 'super_admin';
+        return in_array($this->role, ['super_admin', 'owner'], true);
+    }
+
+    public function isAdmin(): bool
+    {
+        return in_array($this->role, ['admin', 'admin_operasional'], true);
     }
 
     public function isAdminOperasional(): bool
     {
-        return $this->role === 'admin_operasional';
+        return $this->isAdmin();
     }
 
     public function canManagePayroll(): bool
     {
-        return $this->isSuperAdmin();
+        return true;
     }
 
     /**

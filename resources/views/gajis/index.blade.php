@@ -32,19 +32,35 @@
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @forelse($employees as $employee)
+                    @php
+                        $canManage = auth()->user()->isSuperAdmin() || !$employee->isMandorOrAdmin();
+                    @endphp
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4">
                             <div class="text-sm font-medium text-gray-800">{{ $employee->name }}</div>
-                            <div class="text-xs text-gray-500">{{ $employee->employee_id }}</div>
+                            <div class="text-xs text-gray-500">
+                                {{ $employee->employee_id }}
+                                @if($employee->isMandorOrAdmin())
+                                    <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-semibold">Mandor/Admin</span>
+                                @endif
+                            </div>
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-700">{{ $employee->jabatan?->name ?? '-' }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">{{ $employee->jabatan?->name ?? $employee->position ?? '-' }}</td>
                         <td class="px-6 py-4 text-right text-sm font-medium text-gray-800">
-                            Rp {{ number_format($employee->salary ?? 0, 0, ',', '.') }}
+                            @if($canManage)
+                                Rp {{ number_format($employee->salary ?? 0, 0, ',', '.') }}
+                            @else
+                                <span class="text-gray-400 font-mono tracking-widest font-bold">••••••</span>
+                            @endif
                         </td>
                         <td class="px-6 py-4">
-                            <a href="{{ route('gajis.edit', $employee) }}" class="text-blue-600 hover:text-blue-800">
-                                <i class="fas fa-edit"></i>
-                            </a>
+                            @if($canManage)
+                                <a href="{{ route('gajis.edit', $employee) }}" class="text-blue-600 hover:text-blue-800 transition" title="Edit Gaji Pokok">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            @else
+                                <span class="text-gray-300 cursor-not-allowed" title="Akses terbatas untuk Admin"><i class="fas fa-lock"></i></span>
+                            @endif
                         </td>
                     </tr>
                     @empty

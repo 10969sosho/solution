@@ -58,7 +58,10 @@
                     <div class="flex"><span class="w-36 text-gray-500">Bank &amp; No. Rek:</span><span class="font-mono font-bold">{{ $emp->bank_name ?? 'Bank' }} - {{ $emp->account_number }}</span></div>
                     <div class="flex"><span class="w-36 text-gray-500">Atas Nama:</span><span>{{ $emp->account_holder ?? $emp->name }}</span></div>
                 @endif
-                <div class="flex"><span class="w-36 text-gray-500">Jatah Libur:</span><span>{{ $emp->getEffectiveLeaveQuota() }} hari/bln (Terpakai: {{ $payroll->total_hari_libur }} hr)</span></div>
+                <div class="flex"><span class="w-36 text-gray-500">Jatah Libur:</span><span>{{ $emp->getEffectiveLeaveQuotaForMonth($payroll->period_year, $payroll->period_month) }} hari/bln (Terpakai: {{ $payroll->total_hari_libur }} hr)</span></div>
+                @if(($sisaPinjaman ?? 0) > 0 || $payroll->pinjaman_deduction > 0)
+                    <div class="flex"><span class="w-36 text-gray-500">Sisa Pinjaman:</span><span class="font-mono font-semibold text-gray-800">Rp {{ number_format($sisaPinjaman ?? $emp->getTotalRemainingLoan(), 0, ',', '.') }}</span></div>
+                @endif
             </div>
         </div>
 
@@ -127,6 +130,12 @@
                         <div class="flex justify-between text-gray-800 font-medium">
                             <span>Potongan Pinjaman / Kasbon:</span>
                             <span class="font-mono font-bold">-Rp {{ number_format($payroll->pinjaman_deduction, 0, ',', '.') }}</span>
+                        </div>
+                    @endif
+                    @if(($sisaPinjaman ?? 0) > 0 || $payroll->pinjaman_deduction > 0)
+                        <div class="flex justify-between text-gray-600 font-medium pt-1 border-t border-dashed border-gray-300">
+                            <span>Sisa Pinjaman:</span>
+                            <span class="font-mono font-bold text-gray-800">Rp {{ number_format($sisaPinjaman ?? $emp->getTotalRemainingLoan(), 0, ',', '.') }}</span>
                         </div>
                     @endif
                 </div>

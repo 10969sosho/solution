@@ -196,6 +196,8 @@ class LoanController extends Controller
         ];
 
         $reportMonthName = $monthNames[$month];
+        $nextMonthDate = \Carbon\Carbon::create($year, $month, 1)->addMonth();
+        $nextMonthName = $monthNames[$nextMonthDate->month];
 
         foreach ($employees as $employee) {
             $loans = $employee->loans()->with('payments')->orderBy('loan_date')->get();
@@ -228,6 +230,6 @@ class LoanController extends Controller
             ];
         }
 
-        return view('loans.laporan', compact('report', 'employees', 'year', 'month', 'reportMonthName'));
+        return view('loans.laporan', compact('report', 'employees', 'year', 'month', 'reportMonthName', 'nextMonthName'));
     }
 }

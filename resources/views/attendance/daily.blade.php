@@ -62,7 +62,7 @@
                 <span class="inline-block w-4 h-4 bg-yellow-300 border border-yellow-500 rounded mr-2"></span>
             </div>
             <div class="text-xs text-amber-900 leading-relaxed">
-                <strong>Deteksi Absen Anomali (Highlight Kuning):</strong> Baris berwarna kuning menandakan data di luar ketentuan (checklock di luar batas jam, scan kurang dari 4 kali, atau urutan tidak beraturan). Catat izin lewat tombol <strong>Kelola Izin</strong> pada baris karyawan; status tanggal dapat langsung disimpan lewat tombol di bawah tanpa memperbaiki tiap baris.
+                <strong>Deteksi Absen Anomali (Highlight Kuning):</strong> Baris berwarna kuning menandakan data di luar ketentuan. Kelola jam kerja &amp; keterangan via tombol <strong>Kelola Jam &amp; Ket</strong> atau catat izin lewat <strong>Kelola Izin</strong>.
             </div>
         </div>
     </div>
@@ -81,6 +81,7 @@
                     <th class="px-3 py-3 text-center">Telat Masuk</th>
                     <th class="px-3 py-3 text-center">Telat Msk Istirahat</th>
                     <th class="px-3 py-3 text-center">Lembur</th>
+                    <th class="px-4 py-3 text-left">Keterangan (Notes)</th>
                     <th class="px-4 py-3 text-center">Action</th>
                 </tr>
             </thead>
@@ -161,17 +162,95 @@
                             @endif
                         </td>
 
-                        <!-- Action: Kelola Izin + Modal Multiple -->
+                        <!-- Keterangan / Notes -->
+                        <td class="px-4 py-3 text-left">
+                            <div class="font-medium text-gray-800 capitalize">{{ $att?->keterangan ?? 'Hadir' }}</div>
+                            @if($att?->anomaly_reason)
+                                <div class="text-[10px] text-gray-500 italic">{{ $att->anomaly_reason }}</div>
+                            @endif
+                        </td>
+
+                        <!-- Action: Kelola Jam & Keterangan + Kelola Izin -->
                         @if($att)
                             @php
                                 $employeePermits = $permitsByEmployee->get($emp->id, collect());
                             @endphp
                             <td class="px-3 py-3 text-center">
-                                <button type="button" onclick="openPermitModal('permit-modal-{{ $att->id }}')" class="px-3 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200">
-                                    <i class="fas fa-file-signature mr-1"></i> Kelola Izin
-                                    @if($employeePermits->isNotEmpty())<span class="ml-1 rounded-full bg-blue-600 px-1.5 text-white">{{ $employeePermits->count() }}</span>@endif
-                                </button>
+                                <div class="flex items-center justify-center gap-1.5 flex-wrap">
+                                    <!-- Tombol Kelola Jam & Keterangan -->
+                                    <button type="button" onclick="openEditModal('time-modal-{{ $att->id }}')" class="px-2.5 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200" title="Kelola Jam dan Keterangan">
+                                        <i class="fas fa-clock mr-1"></i> Kelola Jam &amp; Ket
+                                    </button>
 
+                                    <!-- Tombol Kelola Izin -->
+                                    <button type="button" onclick="openPermitModal('permit-modal-{{ $att->id }}')" class="px-2.5 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200">
+                                        <i class="fas fa-file-signature mr-1"></i> Kelola Izin
+                                        @if($employeePermits->isNotEmpty())<span class="ml-1 rounded-full bg-blue-600 px-1.5 text-white">{{ $employeePermits->count() }}</span>@endif
+                                    </button>
+                                </div>
+
+                                <!-- Modal Kelola Jam & Keterangan -->
+                                <div id="time-modal-{{ $att->id }}" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/40 p-4" onclick="closeEditModal(event, 'time-modal-{{ $att->id }}')">
+                                    <div class="w-full max-w-lg rounded-xl bg-white p-5 text-left shadow-xl" onclick="event.stopPropagation()">
+                                        <div class="flex items-center justify-between border-b pb-3">
+                                            <div>
+                                                <h3 class="font-semibold text-gray-800">Kelola Jam &amp; Keterangan</h3>
+                                                <p class="text-xs text-gray-500">{{ $emp->name }} · {{ \Carbon\Carbon::parse($dateStr)->format('d/m/Y') }}</p>
+                                            </div>
+                                            <button type="button" onclick="closeEditModal(null, 'time-modal-{{ $att->id }}')" class="text-xl text-gray-400 hover:text-gray-700">&times;</button>
+                                        </div>
+
+                                        <form action="{{ route('attendance.daily.save', $att->id) }}" method="POST" class="space-y-4 pt-4">
+                                            @csrf
+                                            <div class="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Jam Masuk</label>
+                                                    <input type="time" name="check_in" value="{{ $att->check_in ? substr($att->check_in, 0, 5) : '' }}" class="w-full rounded border-gray-300 text-xs">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Jam Istirahat (Keluar)</label>
+                                                    <input type="time" name="break_out" value="{{ $att->break_out ? substr($att->break_out, 0, 5) : '' }}" class="w-full rounded border-gray-300 text-xs">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Jam Masuk Istirahat</label>
+                                                    <input type="time" name="break_in" value="{{ $att->break_in ? substr($att->break_in, 0, 5) : '' }}" class="w-full rounded border-gray-300 text-xs">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Jam Pulang</label>
+                                                    <input type="time" name="check_out" value="{{ $att->check_out ? substr($att->check_out, 0, 5) : '' }}" class="w-full rounded border-gray-300 text-xs">
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Status Kehadiran</label>
+                                                    <select name="keterangan" class="w-full rounded border-gray-300 text-xs">
+                                                        <option value="hadir" {{ $att->keterangan === 'hadir' ? 'selected' : '' }}>Hadir</option>
+                                                        <option value="izin" {{ $att->keterangan === 'izin' ? 'selected' : '' }}>Izin</option>
+                                                        <option value="libur" {{ $att->keterangan === 'libur' ? 'selected' : '' }}>Libur</option>
+                                                        <option value="alpha" {{ $att->keterangan === 'alpha' ? 'selected' : '' }}>Alpha</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Lembur (Menit)</label>
+                                                    <input type="number" name="overtime_minutes" value="{{ $att->overtime_minutes ?? 0 }}" min="0" class="w-full rounded border-gray-300 text-xs">
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-xs font-medium text-gray-700 mb-1">Catatan / Keterangan Notes</label>
+                                                <textarea name="anomaly_reason" rows="2" placeholder="Catatan jam atau keterangan..." class="w-full rounded border-gray-300 text-xs">{{ $att->anomaly_reason }}</textarea>
+                                            </div>
+
+                                            <div class="flex justify-end gap-2 border-t pt-3">
+                                                <button type="button" onclick="closeEditModal(null, 'time-modal-{{ $att->id }}')" class="rounded bg-gray-100 px-4 py-2 text-xs text-gray-700">Batal</button>
+                                                <button type="submit" class="rounded bg-blue-600 px-4 py-2 text-xs font-semibold text-white">Simpan Perubahan</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <!-- Modal Kelola Izin -->
                                 <div id="permit-modal-{{ $att->id }}" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/40 p-4" onclick="closePermitModal(event, 'permit-modal-{{ $att->id }}')">
                                     <div class="w-full max-w-2xl rounded-xl bg-white p-5 text-left shadow-xl" onclick="event.stopPropagation()">
                                         <div class="flex items-center justify-between border-b pb-3">
@@ -181,7 +260,7 @@
                                         <div class="my-4 space-y-2">
                                             @forelse($employeePermits as $permit)
                                                 <div class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs">
-                                                    <span>{{ ucfirst(str_replace('_', ' ', $permit->category)) }} · {{ $permit->type === 'no_deduction' ? 'Tidak potong · ' . $permit->duration_minutes . ' menit' : ($permit->type === 'addition' ? 'Tambah gaji · Rp ' . number_format($permit->nominal, 0, ',', '.') : 'Potong gaji · Rp ' . number_format($permit->nominal, 0, ',', '.')) }}</span>
+                                                    <span>{{ ucfirst(str_replace('_', ' ', $permit->category)) }} · {{ $permit->type === 'libur' ? 'Libur (' . ($permit->leave_duration === 'setengah_hari' ? 'Setengah hari' : '1 hari') . ')' : ($permit->type === 'no_deduction' ? 'Tidak potong · ' . $permit->duration_minutes . ' menit' : 'Potong gaji · Rp ' . number_format($permit->nominal, 0, ',', '.')) }}</span>
                                                     <span class="text-gray-500">{{ $permit->reason }}</span>
                                                 </div>
                                             @empty
@@ -206,7 +285,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="px-4 py-8 text-center text-gray-400">Tidak ada data karyawan aktif.</td>
+                        <td colspan="11" class="px-4 py-8 text-center text-gray-400">Tidak ada data karyawan aktif.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -240,6 +319,7 @@
         </form>
     </div>
 </div>
+
 <template id="permit-row-template">
     <div class="permit-row rounded-lg border border-gray-200 p-3 space-y-2" data-permit-row>
         <div class="flex items-center justify-between">
@@ -250,18 +330,52 @@
         <input type="hidden" name="__END_TIME__" value="08:15">
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
             <label class="text-xs font-medium text-gray-700">Tipe izin
-                <select name="__CATEGORY__" required class="mt-1 w-full rounded border-gray-300 text-sm"><option value="terlambat">Terlambat</option><option value="pulang_awal">Pulang awal</option><option value="tidak_masuk">Tidak masuk</option></select>
+                <select name="__CATEGORY__" onchange="toggleCategoryType(this)" required class="mt-1 w-full rounded border-gray-300 text-sm">
+                    <option value="terlambat">Terlambat</option>
+                    <option value="pulang_awal">Pulang awal</option>
+                    <option value="tidak_masuk">Tidak masuk</option>
+                    <option value="libur">Libur</option>
+                </select>
             </label>
             <label class="text-xs font-medium text-gray-700">Keterangan izin
-                <select name="__TYPE__" required onchange="togglePermitRowFields(this)" class="mt-1 w-full rounded border-gray-300 text-sm"><option value="salary_deduction">Potong gaji</option><option value="addition">Tambah gaji</option><option value="no_deduction">Tidak potong</option></select>
+                <select name="__TYPE__" required onchange="togglePermitRowFields(this)" class="mt-1 w-full rounded border-gray-300 text-sm">
+                    <option value="salary_deduction">Potong gaji</option>
+                    <option value="no_deduction">Tidak potong</option>
+                    <option value="libur" class="hidden">Libur</option>
+                </select>
             </label>
-            <label class="text-xs font-medium text-gray-700" data-permit-money>Nominal (Rp)<input type="number" name="__NOMINAL__" min="0" step="0.01" required placeholder="Masukkan nominal" class="mt-1 w-full rounded border-gray-300 text-sm"></label>
-            <label class="hidden text-xs font-medium text-gray-700" data-permit-minutes>Menit izin<input type="number" name="__MINUTES__" min="1" placeholder="Masukkan jumlah menit" class="mt-1 w-full rounded border-gray-300 text-sm"></label>
-            <input type="text" name="__REASON__" placeholder="Keterangan izin" required class="rounded border-gray-300 text-sm md:col-span-2">
+            <label class="hidden text-xs font-medium text-gray-700" data-permit-leave-duration>Pilihan Libur
+                <select name="__LEAVE_DURATION__" class="mt-1 w-full rounded border-gray-300 text-sm">
+                    <option value="1_hari">1 Hari (Kurangi 1 kuota libur)</option>
+                    <option value="setengah_hari">Setengah Hari (Kurangi 0.5 kuota libur)</option>
+                </select>
+            </label>
+            <label class="hidden text-xs font-medium text-gray-700" data-permit-minutes>Menit izin
+                <input type="number" name="__MINUTES__" min="1" placeholder="Masukkan jumlah menit" class="mt-1 w-full rounded border-gray-300 text-sm">
+            </label>
+            <input type="text" name="__REASON__" placeholder="Alasan izin / keterangan" required class="rounded border-gray-300 text-sm md:col-span-2">
         </div>
     </div>
 </template>
+
 <script>
+    function openEditModal(id) {
+        const modal = document.getElementById(id);
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    }
+
+    function closeEditModal(event, id) {
+        if (event && event.target !== event.currentTarget) return;
+        const modal = document.getElementById(id);
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
     function openPermitModal(id) {
         const modal = document.getElementById(id);
         modal.classList.remove('hidden');
@@ -281,29 +395,58 @@
             .replaceAll('__END_TIME__', p + '[end_time]')
             .replaceAll('__CATEGORY__', p + '[category]')
             .replaceAll('__TYPE__', p + '[type]')
-            .replaceAll('__NOMINAL__', p + '[nominal]')
+            .replaceAll('__LEAVE_DURATION__', p + '[leave_duration]')
             .replaceAll('__MINUTES__', p + '[permit_minutes]')
             .replaceAll('__REASON__', p + '[reason]');
         wrap.insertAdjacentHTML('beforeend', html);
         const row = wrap.lastElementChild;
         row.querySelector('[data-row-label]').textContent = 'Izin #' + (i + 1);
-        togglePermitRowFields(row.querySelector('select[name$="[type]"]'));
+        toggleCategoryType(row.querySelector('select[name$="[category]"]'));
     }
 
     function removePermitRow(btn) {
         btn.closest('[data-permit-row]').remove();
     }
 
+    function toggleCategoryType(categorySelect) {
+        const row = categorySelect.closest('[data-permit-row]');
+        if (!row) return;
+        const typeSelect = row.querySelector('select[name$="[type]"]');
+        const liburOpt = typeSelect.querySelector('option[value="libur"]');
+        const salaryOpt = typeSelect.querySelector('option[value="salary_deduction"]');
+        const noDeductOpt = typeSelect.querySelector('option[value="no_deduction"]');
+
+        if (categorySelect.value === 'libur') {
+            liburOpt.classList.remove('hidden');
+            salaryOpt.classList.add('hidden');
+            noDeductOpt.classList.add('hidden');
+            typeSelect.value = 'libur';
+        } else {
+            liburOpt.classList.add('hidden');
+            salaryOpt.classList.remove('hidden');
+            noDeductOpt.classList.remove('hidden');
+            if (typeSelect.value === 'libur') {
+                typeSelect.value = 'salary_deduction';
+            }
+        }
+        togglePermitRowFields(typeSelect);
+    }
+
     function togglePermitRowFields(select) {
         const row = select.closest('[data-permit-row]');
         if (!row) return;
-        const money = row.querySelector('[data-permit-money]');
+        const leaveDuration = row.querySelector('[data-permit-leave-duration]');
         const minutes = row.querySelector('[data-permit-minutes]');
+
+        const isLibur = select.value === 'libur';
         const isNoDeduction = select.value === 'no_deduction';
-        money.classList.toggle('hidden', isNoDeduction);
-        minutes.classList.toggle('hidden', !isNoDeduction);
-        money.querySelector('input').required = !isNoDeduction;
-        minutes.querySelector('input').required = isNoDeduction;
+
+        if (leaveDuration) leaveDuration.classList.toggle('hidden', !isLibur);
+        if (minutes) {
+            minutes.classList.toggle('hidden', !isNoDeduction);
+            const minInput = minutes.querySelector('input');
+            if (minInput) minInput.required = isNoDeduction;
+        }
     }
 
     function closePermitModal(event, id) {

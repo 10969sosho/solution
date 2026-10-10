@@ -97,11 +97,19 @@
             </thead>
             <tbody class="divide-y divide-gray-100">
                 @forelse($recap as $item)
-                    @php $emp = $item['employee']; @endphp
+                    @php
+                        $emp = $item['employee'];
+                        $canSeeMoney = auth()->user()->isSuperAdmin() || !$emp->isMandorOrAdmin();
+                    @endphp
                     <tr class="hover:bg-blue-50/50 transition">
                         <td class="px-4 py-3 font-medium text-gray-900">
                             <div>{{ $emp->name }}</div>
-                            <div class="text-[10px] text-gray-500">{{ $emp->position ?? 'Karyawan' }} (Jatah: {{ $item['leave_quota'] }} hr)</div>
+                            <div class="text-[10px] text-gray-500">
+                                {{ $emp->position ?? 'Karyawan' }} (Jatah: {{ $item['leave_quota'] }} hr)
+                                @if($emp->isMandorOrAdmin())
+                                    <span class="ml-1 text-[9px] px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 font-semibold">Mandor/Admin</span>
+                                @endif
+                            </div>
                         </td>
 
                         <!-- Telat Masuk (Total Menit) -->
@@ -116,17 +124,19 @@
 
                         <!-- Nominal Potongan Masuk -->
                         <td class="px-3 py-3 text-right font-mono text-gray-700">
-                            Rp {{ number_format($item['nominal_potongan_masuk_kerja'], 0, ',', '.') }}
+                            {{ $canSeeMoney ? 'Rp ' . number_format($item['nominal_potongan_masuk_kerja'], 0, ',', '.') : '••••••' }}
                         </td>
 
                         <!-- Nominal Potongan Istirahat -->
                         <td class="px-3 py-3 text-right font-mono text-gray-700">
-                            Rp {{ number_format($item['nominal_potongan_setelah_istirahat'], 0, ',', '.') }}
+                            {{ $canSeeMoney ? 'Rp ' . number_format($item['nominal_potongan_setelah_istirahat'], 0, ',', '.') : '••••••' }}
                         </td>
 
                         <!-- Nominal Izin (+ / -) -->
                         <td class="px-3 py-3 text-right font-mono">
-                            @if($item['nominal_izin_tambah'] > 0)
+                            @if(!$canSeeMoney)
+                                ••••••
+                            @elseif($item['nominal_izin_tambah'] > 0)
                                 <span class="text-green-600 font-bold">+Rp {{ number_format($item['nominal_izin_tambah'], 0, ',', '.') }}</span>
                             @elseif($item['nominal_izin_potong'] > 0)
                                 <span class="text-red-600 font-bold">-Rp {{ number_format($item['nominal_izin_potong'], 0, ',', '.') }}</span>
@@ -147,7 +157,7 @@
 
                         <!-- Nominal Potong Masuk -->
                         <td class="px-3 py-3 text-right font-mono {{ $item['nominal_potong_masuk'] > 0 ? 'text-red-600 font-semibold' : 'text-gray-400' }}">
-                            Rp {{ number_format($item['nominal_potong_masuk'], 0, ',', '.') }}
+                            {{ $canSeeMoney ? 'Rp ' . number_format($item['nominal_potong_masuk'], 0, ',', '.') : '••••••' }}
                         </td>
 
                         <!-- Total Lembur (menit) -->
@@ -157,17 +167,17 @@
 
                         <!-- Nominal Lembur -->
                         <td class="px-3 py-3 text-right font-mono text-blue-700 font-semibold">
-                            Rp {{ number_format($item['nominal_lembur'], 0, ',', '.') }}
+                            {{ $canSeeMoney ? 'Rp ' . number_format($item['nominal_lembur'], 0, ',', '.') : '••••••' }}
                         </td>
 
                         <!-- Bonus Libur -->
                         <td class="px-3 py-3 text-right font-mono text-emerald-700 font-bold">
-                            Rp {{ number_format($item['bonus_libur'], 0, ',', '.') }}
+                            {{ $canSeeMoney ? 'Rp ' . number_format($item['bonus_libur'], 0, ',', '.') : '••••••' }}
                         </td>
 
                         <!-- Uang Jaga Malam -->
                         <td class="px-3 py-3 text-right font-mono text-indigo-700 font-semibold">
-                            Rp {{ number_format($item['uang_jaga_malam'], 0, ',', '.') }}
+                            {{ $canSeeMoney ? 'Rp ' . number_format($item['uang_jaga_malam'], 0, ',', '.') : '••••••' }}
                         </td>
                     </tr>
                 @empty

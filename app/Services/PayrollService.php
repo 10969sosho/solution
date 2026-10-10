@@ -62,7 +62,16 @@ class PayrollService
                 }
 
                 if ($d->keterangan === 'libur') {
-                    $totalHariLibur++;
+                    $dateStr = $d->date instanceof \DateTimeInterface ? $d->date->format('Y-m-d') : substr((string) $d->date, 0, 10);
+                    $permit = Permit::where('employee_id', $employee->id)
+                        ->whereDate('permit_date', $dateStr)
+                        ->where('type', Permit::TYPE_LIBUR)
+                        ->first();
+                    if ($permit && $permit->leave_duration === 'setengah_hari') {
+                        $totalHariLibur += 0.5;
+                    } else {
+                        $totalHariLibur += 1.0;
+                    }
                 }
 
                 $totalOvertimeMinutes += (int) $d->overtime_minutes;
@@ -73,8 +82,8 @@ class PayrollService
             $potonganTerlambatIstirahat = $this->calculateLateFine($employee, $totalLateBreakInMinutes, 'setelah_istirahat');
             $totalPotonganTerlambat = round($potonganTerlambatMasuk + $potonganTerlambatIstirahat, 2);
 
-            // 3. Hitung Jatah Libur & Potongan Masuk
-            $quota = $employee->getEffectiveLeaveQuota();
+            // 3. Hitung Jatah Libur & Potongan Masuk (reset tiap tanggal 1 tanpa menghilangkan sisa libur bulan lalu)
+            $quota = $employee->getEffectiveLeaveQuotaForMonth($year, $month);
             $hariPotongMasuk = max(0, $totalHariLibur - $quota);
             $sisaLibur = max(0, $quota - $totalHariLibur);
 

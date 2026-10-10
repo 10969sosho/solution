@@ -18,13 +18,9 @@ class PayrollController extends Controller
         $year = (int) $request->input('year', now()->year);
         $month = (int) $request->input('month', now()->month);
 
-        $payrolls = Payroll::with(['employee.golongan', 'employee.jabatan'])
+        $payrolls = Payroll::with(['employee.golongan', 'employee.jabatan', 'employee.loans.payments'])
             ->where('period_year', $year)
             ->where('period_month', $month)
-            ->when(! auth()->user()->isSuperAdmin(), function ($q) {
-                $q->whereHas('employee.golongan', fn ($g) => $g->where('is_confidential', false))
-                  ->whereHas('employee', fn ($e) => $e->whereIn('position', config('hrms.operational_positions', [])));
-            })
             ->orderBy('employee_id')
             ->get();
 
@@ -38,13 +34,15 @@ class PayrollController extends Controller
 
     public function show(Payroll $payroll)
     {
-        $payroll->load(['employee.golongan', 'employee.jabatan']);
+        $payroll->load(['employee.golongan', 'employee.jabatan', 'employee.loans.payments']);
 
-        if (! auth()->user()->isSuperAdmin() && $payroll->employee?->isConfidential()) {
-            abort(403, 'Anda tidak memiliki hak akses ke informasi gaji karyawan ini.');
+        if (! auth()->user()->isSuperAdmin() && $payroll->employee?->isMandorOrAdmin()) {
+            abort(403, 'Anda tidak memiliki hak akses untuk melihat atau mencetak slip gaji golongan Mandor dan Admin.');
         }
 
-        return view('payrolls.show', compact('payroll'));
+        $sisaPinjaman = $payroll->employee?->getTotalRemainingLoan() ?? 0;
+
+        return view('payrolls.show', compact('payroll', 'sisaPinjaman'));
     }
 
     public function generate(Request $request)

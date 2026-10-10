@@ -52,11 +52,13 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('attendance')->group(function () {
         Route::get('/latest', [AttendanceController::class, 'latest']);
         Route::get('/compilation', [\App\Http\Controllers\AttendanceDailyController::class, 'compilation'])->name('attendance.compilation');
+        Route::get('/night-guard', [\App\Http\Controllers\NightGuardController::class, 'index'])->name('attendance.night-guard');
+        Route::post('/night-guard', [\App\Http\Controllers\NightGuardController::class, 'update'])->name('attendance.night-guard.update');
         Route::get('/daily', [\App\Http\Controllers\AttendanceDailyController::class, 'daily'])->name('attendance.daily');
         Route::post('/daily/{daily}/save', [\App\Http\Controllers\AttendanceDailyController::class, 'saveRow'])->name('attendance.daily.save');
         Route::post('/daily/status', [\App\Http\Controllers\AttendanceDailyController::class, 'updateStatus'])->name('attendance.daily.status');
         Route::get('/employee-detail', [\App\Http\Controllers\AttendanceDailyController::class, 'employeeDetail'])->name('attendance.employee-detail');
-    Route::get('/monthly-recap', [\App\Http\Controllers\AttendanceDailyController::class, 'monthlyRecap'])->name('attendance.monthly-recap');
+        Route::get('/monthly-recap', [\App\Http\Controllers\AttendanceDailyController::class, 'monthlyRecap'])->name('attendance.monthly-recap');
     });
 
     Route::get('/permits', [PermitController::class, 'index'])->name('permits.index');
@@ -91,8 +93,8 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/gajis/{employee}', [GajiController::class, 'update'])->name('gajis.update');
     Route::resource('potongan-terlambat', PotonganTerlambatController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
 
-    // Payroll & THR hanya untuk Super Admin / Owner
-    Route::middleware(['role:super_admin'])->group(function () {
+    // Payroll & THR
+    Route::middleware(['role:super_admin,owner,admin,admin_operasional'])->group(function () {
         Route::get('/payrolls', [PayrollController::class, 'index'])->name('payrolls.index');
         Route::post('/payrolls/generate', [PayrollController::class, 'generate'])->name('payrolls.generate');
         Route::post('/payrolls/{payroll}/loan', [PayrollController::class, 'updateLoan'])->name('payrolls.updateLoan');

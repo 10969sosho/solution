@@ -184,7 +184,9 @@ class BriefingRequirementsTest extends TestCase
 
         $indexResponse = $this->get(route('gajis.index'));
         $indexResponse->assertOk();
-        $indexResponse->assertDontSee('Pak Direktur');
+        $indexResponse->assertSee('Pak Direktur');
+        $indexResponse->assertDontSee('15.000.000');
+        $indexResponse->assertSee('••••••');
 
         // Super admin sees confidential employee and can view/edit salary
         $this->loginAsSuperAdmin();
