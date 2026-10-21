@@ -80,8 +80,7 @@
                     <th class="px-3 py-3 text-center">Pulang</th>
                     <th class="px-3 py-3 text-center">Telat Masuk</th>
                     <th class="px-3 py-3 text-center">Telat Msk Istirahat</th>
-                    <th class="px-3 py-3 text-center">Lembur</th>
-                    <th class="px-4 py-3 text-left">Keterangan (Notes)</th>
+                    <th class="px-4 py-3 text-left">Status</th>
                     <th class="px-4 py-3 text-center">Action</th>
                 </tr>
             </thead>
@@ -161,16 +160,7 @@
                             @endif
                         </td>
 
-                        <!-- Lembur -->
-                        <td class="px-3 py-3 text-center">
-                            @if(($att?->overtime_minutes ?? 0) > 0)
-                                <span class="text-blue-600 font-bold">{{ $att->overtime_minutes }} mnt</span>
-                            @else
-                                <span class="text-gray-400">-</span>
-                            @endif
-                        </td>
-
-                        <!-- Keterangan / Notes -->
+                        <!-- Status -->
                         <td class="px-4 py-3 text-left">
                             @if($isEmptyAttendance)
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-600 text-white" title="Absen masuk atau pulang tidak ada">
@@ -182,19 +172,16 @@
                                 </span>
                             @endif
                             <div class="font-medium text-gray-800 capitalize">{{ $att?->keterangan ?? 'Hadir' }}</div>
-                            @if($att?->anomaly_reason)
-                                <div class="text-[10px] text-gray-500 italic">{{ $att->anomaly_reason }}</div>
-                            @endif
                         </td>
 
-                        <!-- Action: Kelola Jam & Keterangan + Kelola Izin -->
+                        <!-- Action: Kelola Jam + Kelola Izin -->
                         @if($att)
                             @php
                                 $employeePermits = $permitsByEmployee->get($emp->id, collect());
                             @endphp
                             <td class="px-3 py-3 text-center">
                                 <div class="flex items-center justify-center gap-1.5 flex-wrap">
-                                    <!-- Tombol Kelola Jam & Keterangan -->
+                                    <!-- Tombol Kelola Jam -->
                                     <button type="button" onclick="openEditModal('time-modal-{{ $att->id }}')" class="px-2.5 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200" title="Kelola Jam">
                                         <i class="fas fa-clock mr-1"></i> Kelola Jam
                                     </button>
@@ -206,7 +193,7 @@
                                     </button>
                                 </div>
 
-                                <!-- Modal Kelola Jam & Keterangan -->
+                                <!-- Modal Kelola Jam -->
                                 <div id="time-modal-{{ $att->id }}" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/40 p-4" onclick="closeEditModal(event, 'time-modal-{{ $att->id }}')">
                                     <div class="w-full max-w-lg rounded-xl bg-white p-5 text-left shadow-xl" onclick="event.stopPropagation()">
                                         <div class="flex items-center justify-between border-b pb-3">
@@ -285,7 +272,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="11" class="px-4 py-8 text-center text-gray-400">Tidak ada data karyawan aktif.</td>
+                        <td colspan="10" class="px-4 py-8 text-center text-gray-400">Tidak ada data karyawan aktif.</td>
                     </tr>
                 @endforelse
             </tbody>

@@ -169,6 +169,9 @@ class CatatanRevisiTest extends TestCase
         $response->assertDontSee('Status Kehadiran', false);
         $response->assertDontSee('Lembur (Menit)', false);
         $response->assertDontSee('Catatan / Keterangan Notes', false);
+        // Component yang dihapus dari tabel Absen Daily
+        $response->assertDontSee('>Lembur</th>', false);
+        $response->assertDontSee('Keterangan (Notes)', false);
     }
 
     /**
