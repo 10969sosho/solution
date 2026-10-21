@@ -118,6 +118,80 @@ class AttendanceProcessingService
     }
 
     /**
+     * Proses absensi jaga malam (17:00 - 06:00 keesokan harinya).
+     */
+    public function processNight(Employee $employee, Carbon $date): array
+    {
+        $result = [
+            'date' => $date->toDateString(),
+            'present' => false,
+            'schedule' => [
+                'check_in_time' => '17:00:00',
+                'check_out_time' => '06:00:00',
+                'late_tolerance_minutes' => 15,
+                'source' => 'jaga_malam',
+            ],
+            'check_locks' => [
+                'check_in' => null,
+                'break_out' => null,
+                'break_in' => null,
+                'check_out' => null,
+            ],
+            'late_minutes' => 0,
+            'early_leave_minutes' => 0,
+            'total_work_minutes' => 0,
+        ];
+
+        $windowStart = $date->copy()->setTime(16, 0);
+        $windowEnd = $date->copy()->addDay()->setTime(7, 0);
+
+        $logs = $employee->attendanceLogs()
+            ->whereBetween('scan_time', [$windowStart, $windowEnd])
+            ->orderBy('scan_time')
+            ->get();
+
+        if ($logs->isEmpty()) {
+            return $result;
+        }
+
+        $result['check_locks']['check_in'] = $this->mapLog($logs->first());
+
+        if ($logs->count() > 1) {
+            $result['check_locks']['check_out'] = $this->mapLog($logs->last());
+        }
+
+        $result['present'] = collect($result['check_locks'])->filter()->isNotEmpty();
+
+        if (! $result['present']) {
+            return $result;
+        }
+
+        $expectedIn = $date->copy()->setTime(17, 15);
+        $expectedOut = $date->copy()->addDay()->setTime(6, 0);
+
+        if ($result['check_locks']['check_in']) {
+            $scanIn = $result['check_locks']['check_in']['scan_time'];
+            if ($scanIn->gt($expectedIn)) {
+                $result['late_minutes'] = (int) $expectedIn->diffInMinutes($scanIn);
+            }
+        }
+
+        if ($result['check_locks']['check_out']) {
+            $scanOut = $result['check_locks']['check_out']['scan_time'];
+            if ($scanOut->lt($expectedOut)) {
+                $result['early_leave_minutes'] = (int) $scanOut->diffInMinutes($expectedOut);
+            }
+        }
+
+        if ($result['check_locks']['check_in'] && $result['check_locks']['check_out']) {
+            $result['total_work_minutes'] = max(0, (int) $result['check_locks']['check_in']['scan_time']
+                ->diffInMinutes($result['check_locks']['check_out']['scan_time']));
+        }
+
+        return $result;
+    }
+
+    /**
      * Proses absensi satu bulan untuk satu karyawan (untuk laporan rincian & payroll).
      *
      * @return array

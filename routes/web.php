@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdmsController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BonusLiburController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\GajiController;
@@ -71,6 +72,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/loans', [LoanController::class, 'index'])->name('loans.index');
     Route::get('/loans/create', [LoanController::class, 'create'])->name('loans.create');
     Route::post('/loans', [LoanController::class, 'store'])->name('loans.store');
+    Route::get('/loans/potong', [LoanController::class, 'paymentIndex'])->name('loans.potong');
     Route::get('/loans/mutasi', [LoanController::class, 'mutasi'])->name('loans.mutasi');
     Route::get('/loans/laporan', [LoanController::class, 'laporan'])->name('loans.laporan');
     Route::get('/loans/{loan}', [LoanController::class, 'show'])->name('loans.show');
@@ -93,11 +95,14 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/gajis/{employee}', [GajiController::class, 'update'])->name('gajis.update');
     Route::resource('potongan-terlambat', PotonganTerlambatController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
 
+    // Master Bonus Libur
+    Route::get('/bonus-libur', [BonusLiburController::class, 'index'])->name('bonus-libur.index');
+    Route::put('/bonus-libur', [BonusLiburController::class, 'update'])->name('bonus-libur.update');
+
     // Payroll & THR
     Route::middleware(['role:super_admin,owner,admin,admin_operasional'])->group(function () {
         Route::get('/payrolls', [PayrollController::class, 'index'])->name('payrolls.index');
         Route::post('/payrolls/generate', [PayrollController::class, 'generate'])->name('payrolls.generate');
-        Route::post('/payrolls/{payroll}/loan', [PayrollController::class, 'updateLoan'])->name('payrolls.updateLoan');
         Route::get('/payrolls/thr', [PayrollController::class, 'thr'])->name('payrolls.thr');
         Route::get('/payrolls/{payroll}', [PayrollController::class, 'show'])->name('payrolls.show');
         Route::post('/payrolls/{payroll}/paid', [PayrollController::class, 'markPaid'])->name('payrolls.paid');

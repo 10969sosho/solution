@@ -49,33 +49,12 @@ class PayrollController extends Controller
     {
         $year = (int) $request->input('year', now()->year);
         $month = (int) $request->input('month', now()->month);
-        $manualLoans = $request->input('manual_loans', []);
 
-        $this->payrollService->generateAll($year, $month, $manualLoans);
+        $this->payrollService->generateAll($year, $month);
 
         return redirect()
             ->route('payrolls.index', ['year' => $year, 'month' => $month])
             ->with('success', 'Payroll berhasil digenerate');
-    }
-
-    public function updateLoan(Request $request, Payroll $payroll)
-    {
-        $validated = $request->validate([
-            'pinjaman_deduction' => 'required|numeric|min:0',
-        ]);
-
-        $diff = (float) $validated['pinjaman_deduction'] - (float) $payroll->pinjaman_deduction;
-        $newGrandTotal = (float) $payroll->grand_total - $diff;
-
-        $payroll->update([
-            'pinjaman_deduction' => $validated['pinjaman_deduction'],
-            'loan_deduction' => $validated['pinjaman_deduction'],
-            'grand_total' => $newGrandTotal,
-            'net_salary' => $newGrandTotal,
-            'total_deduction' => (float) $payroll->total_deduction + $diff,
-        ]);
-
-        return back()->with('success', 'Potongan pinjaman berhasil diperbarui');
     }
 
     public function markPaid(Request $request, Payroll $payroll)

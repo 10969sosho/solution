@@ -114,10 +114,12 @@ class EmployeeController extends Controller
             'payment_method' => 'nullable|in:transfer,cash',
             'leave_quota' => 'nullable|integer|min:0|max:31',
             'is_night_guard' => 'nullable|boolean',
+            'uang_jaga_malam' => 'nullable|numeric|min:0',
         ]);
 
         $validated['payment_method'] = $validated['payment_method'] ?? 'transfer';
         $validated['is_night_guard'] = $request->has('is_night_guard');
+        $validated['uang_jaga_malam'] = $validated['uang_jaga_malam'] ?? 0;
 
         if (!empty($validated['jabatan_id'])) {
             $validated['position'] = Jabatan::find($validated['jabatan_id'])?->name ?? ($validated['position'] ?? null);
@@ -176,10 +178,12 @@ class EmployeeController extends Controller
             'payment_method' => 'nullable|in:transfer,cash',
             'leave_quota' => 'nullable|integer|min:0|max:31',
             'is_night_guard' => 'nullable|boolean',
+            'uang_jaga_malam' => 'nullable|numeric|min:0',
         ]);
 
         $validated['payment_method'] = $validated['payment_method'] ?? 'transfer';
         $validated['is_night_guard'] = $request->has('is_night_guard');
+        $validated['uang_jaga_malam'] = $validated['uang_jaga_malam'] ?? 0;
 
         if (!empty($validated['jabatan_id'])) {
             $validated['position'] = Jabatan::find($validated['jabatan_id'])?->name ?? ($validated['position'] ?? null);

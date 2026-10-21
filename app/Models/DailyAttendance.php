@@ -22,6 +22,7 @@ class DailyAttendance extends Model
         'nominal_izin',
         'tipe_nominal_izin',
         'is_fixed',
+        'edited_fields',
     ];
 
     protected $casts = [
@@ -31,6 +32,7 @@ class DailyAttendance extends Model
         'is_anomaly' => 'boolean',
         'nominal_izin' => 'decimal:2',
         'is_fixed' => 'boolean',
+        'edited_fields' => 'array',
     ];
 
     public function setDateAttribute($value): void

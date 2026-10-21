@@ -53,6 +53,26 @@ class LoanController extends Controller
         return view('loan-payments.create', compact('loan'));
     }
 
+    /**
+     * Halaman "Create Potong Pinjaman": catat pembayaran/potongan pinjaman
+     * yang akan dipotong dari gaji karyawan.
+     */
+    public function paymentIndex(Request $request)
+    {
+        $query = Loan::with('employee')
+            ->where('status', 'active')
+            ->orderBy('loan_date');
+
+        if ($request->filled('employee_id')) {
+            $query->where('employee_id', $request->employee_id);
+        }
+
+        $loans = $query->get();
+        $employees = Employee::where('status', 'active')->orderBy('name')->get();
+
+        return view('loans.potong', compact('loans', 'employees'));
+    }
+
     public function paymentStore(Request $request, Loan $loan)
     {
         $validated = $request->validate([
@@ -114,6 +134,10 @@ class LoanController extends Controller
 
         $validated['loan_id'] = $loan->id;
         $validated['employee_id'] = $loan->employee_id;
+
+        if ((float) $validated['amount'] > $loan->remaining_balance + 0.01) {
+            return back()->withInput()->with('error', 'Nominal potong pinjaman melebihi sisa pinjaman (Rp ' . number_format($loan->remaining_balance, 0, ',', '.') . ').');
+        }
 
         LoanPayment::create($validated);
 

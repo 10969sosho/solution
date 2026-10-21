@@ -133,7 +133,7 @@ class AttendanceDailyController extends Controller
     public function saveRow(Request $request, DailyAttendance $daily)
     {
         $validated = $request->validate([
-            'keterangan' => 'required|in:hadir,izin,libur,alpha',
+            'keterangan' => 'nullable|in:hadir,izin,libur,alpha',
             'tipe_nominal_izin' => 'nullable|in:potong_gaji,tambah_gaji,tidak_potong',
             'nominal_izin' => 'nullable|numeric|min:0',
             'check_in' => 'nullable|date_format:H:i',
@@ -147,24 +147,32 @@ class AttendanceDailyController extends Controller
 
         $isFixed = $request->has('is_fixed') ? (bool) $request->is_fixed : true;
         $updateData = [
-            'keterangan' => $validated['keterangan'],
+            'keterangan' => $validated['keterangan'] ?? $daily->keterangan,
             'tipe_nominal_izin' => $validated['tipe_nominal_izin'] ?? $daily->tipe_nominal_izin,
             'nominal_izin' => $validated['nominal_izin'] ?? $daily->nominal_izin,
             'is_fixed' => $isFixed,
         ];
 
-        if ($request->has('check_in')) {
-            $updateData['check_in'] = $validated['check_in'] ? $validated['check_in'] . ':00' : null;
+        // Lacak kolom jam yang diubah manual (Kelola Jam) agar bisa ditandai di Absen Daily.
+        $edited = is_array($daily->edited_fields) ? $daily->edited_fields : [];
+
+        foreach (['check_in', 'break_out', 'break_in', 'check_out'] as $field) {
+            if ($request->has($field)) {
+                $submitted = $validated[$field] ? $validated[$field] . ':00' : null;
+                $current = $daily->{$field};
+
+                if ($submitted !== $current) {
+                    $edited[$field] = true;
+                } else {
+                    unset($edited[$field]);
+                }
+
+                $updateData[$field] = $submitted;
+            }
         }
-        if ($request->has('break_out')) {
-            $updateData['break_out'] = $validated['break_out'] ? $validated['break_out'] . ':00' : null;
-        }
-        if ($request->has('break_in')) {
-            $updateData['break_in'] = $validated['break_in'] ? $validated['break_in'] . ':00' : null;
-        }
-        if ($request->has('check_out')) {
-            $updateData['check_out'] = $validated['check_out'] ? $validated['check_out'] . ':00' : null;
-        }
+
+        $updateData['edited_fields'] = ! empty($edited) ? $edited : null;
+
         if ($request->has('overtime_minutes')) {
             $updateData['overtime_minutes'] = (int) $validated['overtime_minutes'];
         }
@@ -394,21 +402,29 @@ class AttendanceDailyController extends Controller
             $dailyRate = ((float) $employee->salary) / (int) config('payroll_rules.potongan_masuk.divider', 30);
             $nominalPotongMasuk = round($dailyRate * $hariPotongMasuk, 2);
 
-            // Perhitungan Bonus Libur (Section 13 & 14 briefing)
+            // Perhitungan Bonus Libur (Section 13 & 14 briefing) - variabel dari Master Bonus Libur
+            $bonusSetting = \App\Models\BonusLiburSetting::current();
             $bonusLibur = 0;
             if ($sisaLibur > 0) {
-                $salaryThreshold = (float) config('payroll_rules.bonus_libur.salary_threshold', 2250000);
-                if ((float) $employee->salary >= $salaryThreshold) {
-                    $bonusLibur = round($dailyRate * (float) config('payroll_rules.bonus_libur.high_salary_multiplier', 1.5) * $sisaLibur, 2);
+                if ((float) $employee->salary >= (float) $bonusSetting->batas_gaji) {
+                    $bonusLibur = round($dailyRate * (float) $bonusSetting->pengali_bonus * $sisaLibur, 2);
                 } else {
-                    $bonusLibur = (float) config('payroll_rules.bonus_libur.low_salary_per_day', 75000) * $sisaLibur;
+                    $fullDays = floor($sisaLibur);
+                    $hasHalf = ($sisaLibur - $fullDays) >= 0.5;
+                    $bonusLibur = round(
+                        ($fullDays * (float) $bonusSetting->bonus_satu_hari)
+                        + ($hasHalf ? (float) $bonusSetting->bonus_setengah_hari : 0),
+                        2
+                    );
                 }
             }
 
-            // Uang Jaga Malam: Mandor jaga malam = Rp 600.000 / bulan
+            // Uang Jaga Malam: nominal dari Data Karyawan (fallback ke ketentuan config)
             $uangJagaMalam = 0;
             if ($employee->is_night_guard) {
-                if ($employee->isMandor()) {
+                if ((float) $employee->uang_jaga_malam > 0) {
+                    $uangJagaMalam = (float) $employee->uang_jaga_malam;
+                } elseif ($employee->isMandor()) {
                     $uangJagaMalam = (float) config('payroll_rules.uang_jaga_malam.mandor_bonus', 600000);
                 } else {
                     $uangJagaMalam = (float) config('payroll_rules.uang_jaga_malam.default_bonus', 0);

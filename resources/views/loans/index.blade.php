@@ -53,6 +53,9 @@
                 <a href="{{ route('loans.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                     <i class="fas fa-plus mr-2"></i>Tambah Pinjaman
                 </a>
+                <a href="{{ route('loans.potong') }}" class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
+                    <i class="fas fa-scissors mr-2"></i>Potong Pinjaman
+                </a>
             </div>
         </div>
 

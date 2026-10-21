@@ -109,7 +109,7 @@ class RevisionTest extends TestCase
         $response->assertDontSee('>Keterangan</th>', false);
         $response->assertDontSee('name="nominal_izin"', false);
         $response->assertDontSee('name="tipe_nominal_izin"', false);
-        $response->assertSee('Kelola Jam &amp; Ket', false);
+        $response->assertSee('Kelola Jam', false);
         $response->assertSee('permit-rows-permit-modal-', false);
     }
 

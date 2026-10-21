@@ -19,7 +19,7 @@ class PayrollService
      * GRAND TOTAL = GAJI POKOK - POTONGAN TERLAMBAT - IZIN POTONG GAJI + IZIN TAMBAH GAJI
      *               - PINJAMAN - POTONGAN MASUK + BONUSAN + UANG JAGA MALAM + NOMINAL LEMBUR
      */
-    public function calculate(Employee $employee, int $year, int $month, ?float $manualLoanDeduction = null): array
+    public function calculate(Employee $employee, int $year, int $month): array
     {
         $baseSalary = (float) $employee->salary;
         $start = Carbon::create($year, $month, 1)->startOfMonth();
@@ -91,37 +91,21 @@ class PayrollService
             $dailyRate = $baseSalary > 0 ? ($baseSalary / $dailyDivider) : 0;
             $potonganMasuk = round($dailyRate * $hariPotongMasuk, 2);
 
-            // 4. Hitung Bonus Libur (Pencairan Sisa Libur)
-            $bonusLibur = 0;
-            if ($sisaLibur > 0 && $baseSalary > 0) {
-                $salaryThreshold = (float) config('payroll_rules.bonus_libur.salary_threshold', 2250000);
-                if ($baseSalary >= $salaryThreshold) {
-                    $multiplier = (float) config('payroll_rules.bonus_libur.high_salary_multiplier', 1.5);
-                    $bonusLibur = round($dailyRate * $multiplier * $sisaLibur, 2);
-                } else {
-                    $perDayRate = (float) config('payroll_rules.bonus_libur.low_salary_per_day', 75000);
-                    $bonusLibur = round($perDayRate * $sisaLibur, 2);
-                }
-            }
+            // 4. Hitung Bonus Libur (Pencairan Sisa Libur) - variabel dari Master Bonus Libur
+            $bonusLibur = $this->calculateBonusLiburAmount($baseSalary, $dailyRate, $sisaLibur);
+
+            // 5. Uang Jaga Malam (nominal dari Data Karyawan)
+            $uangJagaMalam = $this->calculateUangJagaMalam($employee);
 
             // 5. Uang Jaga Malam
-            $uangJagaMalam = 0;
-            if ($employee->is_night_guard) {
-                if ($employee->isMandor()) {
-                    $uangJagaMalam = (float) config('payroll_rules.uang_jaga_malam.mandor_bonus', 600000);
-                } else {
-                    $uangJagaMalam = (float) config('payroll_rules.uang_jaga_malam.default_bonus', 0);
-                }
-            }
+            $uangJagaMalam = $this->calculateUangJagaMalam($employee);
 
             // 6. Nominal Lembur
             $hourlyRate = $baseSalary > 0 ? ($baseSalary / 173) : 0;
             $nominalLembur = round(($totalOvertimeMinutes / 60) * $hourlyRate, 2);
 
-            // 7. Pinjaman Karyawan
-            $pinjamanDeduction = $manualLoanDeduction !== null
-                ? (float) $manualLoanDeduction
-                : $this->calculateLoanDeduction($employee, $year, $month);
+            // 7. Pinjaman Karyawan (dari transaksi Potong Pinjaman)
+            $pinjamanDeduction = $this->calculateLoanDeduction($employee, $year, $month);
 
             // 8. Rumus Grand Total Gaji (Section 14 briefing):
             // GRAND TOTAL = GAJI POKOK - POTONGAN TERLAMBAT - IZIN POTONG GAJI + IZIN TAMBAH GAJI
@@ -158,24 +142,32 @@ class PayrollService
             $totalWorkMinutes = $attendance['total_work_minutes'];
 
             $lateDeduction = $this->calculateLateDeductionWithPermits($employee, $attendance, $permits);
-            $pinjamanDeduction = $manualLoanDeduction !== null
-                ? (float) $manualLoanDeduction
-                : $this->calculateLoanDeduction($employee, $year, $month);
-            $potonganMasuk = $this->calculateAbsenceDeduction($employee, $year, $month, $attendance);
-            $attendanceBonus = $this->calculateAttendanceBonus($employee, $year, $month, $permits);
+            $pinjamanDeduction = $this->calculateLoanDeduction($employee, $year, $month);
+
+            // Jatah libur & potongan masuk (dihitung dari izin libur approved)
+            $totalHariLibur = 0.0;
+            foreach ($permits->where('type', Permit::TYPE_LIBUR) as $liburPermit) {
+                $totalHariLibur += $liburPermit->leave_duration === 'setengah_hari' ? 0.5 : 1.0;
+            }
+
+            $quota = $employee->getEffectiveLeaveQuotaForMonth($year, $month);
+            $hariPotongMasuk = max(0, $totalHariLibur - $quota);
+            $sisaLibur = max(0, $quota - $totalHariLibur);
+
+            $dailyRate = $baseSalary > 0 ? ($baseSalary / (int) config('payroll_rules.potongan_masuk.divider', 30)) : 0;
+            $potonganMasuk = round($dailyRate * $hariPotongMasuk, 2);
+
+            $bonusLibur = $this->calculateBonusLiburAmount($baseSalary, $dailyRate, $sisaLibur);
+            $uangJagaMalam = $this->calculateUangJagaMalam($employee);
+            $nominalLembur = 0;
+            $attendanceBonus = $bonusLibur;
 
             $totalPotonganTerlambat = $lateDeduction;
             $potonganTerlambatMasuk = $lateDeduction;
             $potonganTerlambatIstirahat = 0;
-            $bonusLibur = 0;
-            $uangJagaMalam = 0;
-            $nominalLembur = 0;
-            $quota = $employee->getEffectiveLeaveQuota();
-            $sisaLibur = 0;
-            $hariPotongMasuk = 0;
 
             $totalDeduction = round($lateDeduction + $pinjamanDeduction + $potonganMasuk, 2);
-            $totalIncentive = round($attendanceBonus, 2);
+            $totalIncentive = round($bonusLibur + $uangJagaMalam, 2);
             $grandTotal = round($baseSalary - $totalDeduction + $totalIncentive, 2);
         }
 
@@ -221,7 +213,7 @@ class PayrollService
     /**
      * Simpan payroll (upsert) untuk satu karyawan. Tidak bisa digenerate ulang jika sudah paid.
      */
-    public function generate(Employee $employee, int $year, int $month, ?float $manualLoanDeduction = null): Payroll
+    public function generate(Employee $employee, int $year, int $month): Payroll
     {
         if (Payroll::where('employee_id', $employee->id)
             ->where('period_year', $year)
@@ -231,7 +223,7 @@ class PayrollService
             throw new \RuntimeException('Payroll periode ini sudah berstatus paid dan tidak dapat diubah.');
         }
 
-        $data = $this->calculate($employee, $year, $month, $manualLoanDeduction);
+        $data = $this->calculate($employee, $year, $month);
 
         return Payroll::updateOrCreate(
             [
@@ -243,12 +235,12 @@ class PayrollService
         );
     }
 
-    public function generateAll(int $year, int $month, array $manualLoans = []): array
+    public function generateAll(int $year, int $month): array
     {
         $employees = Employee::where('status', 'active')->get();
         $created = [];
 
-        DB::transaction(function () use ($employees, $year, $month, $manualLoans, &$created) {
+        DB::transaction(function () use ($employees, $year, $month, &$created) {
             foreach ($employees as $employee) {
                 // Payroll paid tidak boleh diubah, tapi karyawan lain tetap digenerate (bukan 500).
                 $paidExists = Payroll::where('employee_id', $employee->id)
@@ -260,8 +252,7 @@ class PayrollService
                     continue;
                 }
 
-                $manualLoan = isset($manualLoans[$employee->id]) ? (float) $manualLoans[$employee->id] : null;
-                $created[] = $this->generate($employee, $year, $month, $manualLoan);
+                $created[] = $this->generate($employee, $year, $month);
             }
         });
 
@@ -336,16 +327,60 @@ class PayrollService
         return $potongan ? (float) $potongan->amount : 0;
     }
 
+    /**
+     * Bonus Libur (Pencairan Sisa Jatah Libur).
+     * Variabel A/B/C/D diambil dari Master Bonus Libur.
+     */
+    private function calculateBonusLiburAmount(float $baseSalary, float $dailyRate, float $sisaLibur): float
+    {
+        if ($sisaLibur <= 0 || $baseSalary <= 0) {
+            return 0;
+        }
+
+        $setting = \App\Models\BonusLiburSetting::current();
+
+        if ($baseSalary >= (float) $setting->batas_gaji) {
+            return round($dailyRate * (float) $setting->pengali_bonus * $sisaLibur, 2);
+        }
+
+        $fullDays = floor($sisaLibur);
+        $hasHalfDay = ($sisaLibur - $fullDays) >= 0.5;
+
+        return round(
+            ($fullDays * (float) $setting->bonus_satu_hari)
+            + ($hasHalfDay ? (float) $setting->bonus_setengah_hari : 0),
+            2
+        );
+    }
+
+    /**
+     * Uang Jaga Malam bulanan. Nominal diambil dari Data Karyawan,
+     * fallback ke ketentuan config untuk Mandor jaga malam.
+     */
+    private function calculateUangJagaMalam(Employee $employee): float
+    {
+        if (! $employee->is_night_guard) {
+            return 0;
+        }
+
+        if ((float) $employee->uang_jaga_malam > 0) {
+            return round((float) $employee->uang_jaga_malam, 2);
+        }
+
+        if ($employee->isMandor()) {
+            return (float) config('payroll_rules.uang_jaga_malam.mandor_bonus', 600000);
+        }
+
+        return (float) config('payroll_rules.uang_jaga_malam.default_bonus', 0);
+    }
+
     private function calculateLoanDeduction(Employee $employee, int $year, int $month): float
     {
-        return (float) $employee->loans()
-            ->where('status', 'active')
-            ->with(['payments' => function ($q) use ($year, $month) {
-                $q->whereYear('payment_date', $year)->whereMonth('payment_date', $month);
-            }])
-            ->get()
-            ->pluck('payments')
-            ->flatten()
+        // Potongan pinjaman diambil dari transaksi Potong Pinjaman (loan_payments)
+        // pada periode berjalan, bukan diisi manual di baris payroll.
+        return (float) \App\Models\LoanPayment::where('employee_id', $employee->id)
+            ->whereYear('payment_date', $year)
+            ->whereMonth('payment_date', $month)
             ->sum('amount');
     }
 
@@ -368,30 +403,6 @@ class PayrollService
             ->count();
 
         return round($absentDays * $dailyRate, 2);
-    }
-
-    private function calculateAttendanceBonus(Employee $employee, int $year, int $month, $permits = null): float
-    {
-        if (! config('payroll.attendance_bonus.enabled', true)) {
-            return 0;
-        }
-
-        if ($permits === null) {
-            $permits = $employee->permits()
-                ->where('status', 'approved')
-                ->whereYear('permit_date', $year)
-                ->whereMonth('permit_date', $month)
-                ->get();
-        }
-
-        if ($permits->isNotEmpty()) {
-            return 0;
-        }
-
-        $tier = $employee->salary_tier;
-        $byTier = config('payroll.attendance_bonus.by_tier', []);
-
-        return (float) ($byTier[$tier] ?? config('payroll.attendance_bonus.default', 0));
     }
 
     /**

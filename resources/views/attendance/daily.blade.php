@@ -59,10 +59,10 @@
     <div class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded-r-lg">
         <div class="flex items-start">
             <div class="flex-shrink-0 mt-0.5">
-                <span class="inline-block w-4 h-4 bg-yellow-300 border border-yellow-500 rounded mr-2"></span>
+                <span class="inline-block w-4 h-4 bg-red-300 border border-red-500 rounded mr-2"></span>
             </div>
-            <div class="text-xs text-amber-900 leading-relaxed">
-                <strong>Deteksi Absen Anomali (Highlight Kuning):</strong> Baris berwarna kuning menandakan data di luar ketentuan. Kelola jam kerja &amp; keterangan via tombol <strong>Kelola Jam &amp; Ket</strong> atau catat izin lewat <strong>Kelola Izin</strong>.
+            <div class="text-xs text-red-900 leading-relaxed">
+                <strong>Penanda Absen Kosong / Bolong (Stabilo Merah):</strong> Baris berwarna merah menandakan tidak ada absen masuk/pulang atau checklock tidak lengkap. Kelola jam lewat tombol <strong>Kelola Jam</strong> atau catat izin lewat <strong>Kelola Izin</strong>.
             </div>
         </div>
     </div>
@@ -92,8 +92,12 @@
                         $att = $item['attendance'];
                         $isAnomaly = $att?->is_anomaly ?? false;
                         $isIgnored = $att?->isLateIgnored() ?? false;
+                        $isEmptyAttendance = $att && (! $att->check_in || ! $att->check_out);
+                        $isBolongAttendance = $att && $att->check_in && $att->check_out
+                            && (! $att->break_out || ! $att->break_in);
+                        $editedFields = is_array($att?->edited_fields) ? $att->edited_fields : [];
                     @endphp
-                    <tr class="transition {{ $isAnomaly ? 'bg-yellow-100 hover:bg-yellow-200/80' : 'hover:bg-blue-50/50' }}">
+                    <tr class="transition {{ ($isEmptyAttendance || $isBolongAttendance) ? 'bg-red-100 hover:bg-red-200/80' : ($isAnomaly ? 'bg-yellow-100 hover:bg-yellow-200/80' : 'hover:bg-blue-50/50') }}">
                         <td class="px-4 py-3 text-gray-500">{{ $index + 1 }}</td>
                         <td class="px-4 py-3 font-medium text-gray-900">
                             <div>{{ $emp->name }}</div>
@@ -108,21 +112,25 @@
                         <!-- Masuk -->
                         <td class="px-3 py-3 text-center font-mono font-medium {{ $att?->check_in ? 'text-gray-800' : 'text-gray-400' }}">
                             {{ $att?->check_in ? substr($att->check_in, 0, 5) : '-' }}
+                            @if(!empty($editedFields['check_in']))<span class="block text-[9px] font-bold text-orange-600"><i class="fas fa-pen"></i> diedit</span>@endif
                         </td>
 
                         <!-- Istirahat -->
                         <td class="px-3 py-3 text-center font-mono font-medium {{ $att?->break_out ? 'text-gray-800' : 'text-gray-400' }}">
                             {{ $att?->break_out ? substr($att->break_out, 0, 5) : '-' }}
+                            @if(!empty($editedFields['break_out']))<span class="block text-[9px] font-bold text-orange-600"><i class="fas fa-pen"></i> diedit</span>@endif
                         </td>
 
                         <!-- Masuk Istirahat -->
                         <td class="px-3 py-3 text-center font-mono font-medium {{ $att?->break_in ? 'text-gray-800' : 'text-gray-400' }}">
                             {{ $att?->break_in ? substr($att->break_in, 0, 5) : '-' }}
+                            @if(!empty($editedFields['break_in']))<span class="block text-[9px] font-bold text-orange-600"><i class="fas fa-pen"></i> diedit</span>@endif
                         </td>
 
                         <!-- Pulang -->
                         <td class="px-3 py-3 text-center font-mono font-medium {{ $att?->check_out ? 'text-gray-800' : 'text-gray-400' }}">
                             {{ $att?->check_out ? substr($att->check_out, 0, 5) : '-' }}
+                            @if(!empty($editedFields['check_out']))<span class="block text-[9px] font-bold text-orange-600"><i class="fas fa-pen"></i> diedit</span>@endif
                         </td>
 
                         <!-- Telat Masuk -->
@@ -164,6 +172,15 @@
 
                         <!-- Keterangan / Notes -->
                         <td class="px-4 py-3 text-left">
+                            @if($isEmptyAttendance)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-600 text-white" title="Absen masuk atau pulang tidak ada">
+                                    <i class="fas fa-exclamation-circle mr-1"></i>Absen Kosong
+                                </span>
+                            @elseif($isBolongAttendance)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white" title="Scan istirahat tidak lengkap">
+                                    <i class="fas fa-exclamation-circle mr-1"></i>Absen Bolong
+                                </span>
+                            @endif
                             <div class="font-medium text-gray-800 capitalize">{{ $att?->keterangan ?? 'Hadir' }}</div>
                             @if($att?->anomaly_reason)
                                 <div class="text-[10px] text-gray-500 italic">{{ $att->anomaly_reason }}</div>
@@ -178,8 +195,8 @@
                             <td class="px-3 py-3 text-center">
                                 <div class="flex items-center justify-center gap-1.5 flex-wrap">
                                     <!-- Tombol Kelola Jam & Keterangan -->
-                                    <button type="button" onclick="openEditModal('time-modal-{{ $att->id }}')" class="px-2.5 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200" title="Kelola Jam dan Keterangan">
-                                        <i class="fas fa-clock mr-1"></i> Kelola Jam &amp; Ket
+                                    <button type="button" onclick="openEditModal('time-modal-{{ $att->id }}')" class="px-2.5 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200" title="Kelola Jam">
+                                        <i class="fas fa-clock mr-1"></i> Kelola Jam
                                     </button>
 
                                     <!-- Tombol Kelola Izin -->
@@ -194,7 +211,7 @@
                                     <div class="w-full max-w-lg rounded-xl bg-white p-5 text-left shadow-xl" onclick="event.stopPropagation()">
                                         <div class="flex items-center justify-between border-b pb-3">
                                             <div>
-                                                <h3 class="font-semibold text-gray-800">Kelola Jam &amp; Keterangan</h3>
+                                                <h3 class="font-semibold text-gray-800">Kelola Jam</h3>
                                                 <p class="text-xs text-gray-500">{{ $emp->name }} · {{ \Carbon\Carbon::parse($dateStr)->format('d/m/Y') }}</p>
                                             </div>
                                             <button type="button" onclick="closeEditModal(null, 'time-modal-{{ $att->id }}')" class="text-xl text-gray-400 hover:text-gray-700">&times;</button>
@@ -221,25 +238,8 @@
                                                 </div>
                                             </div>
 
-                                            <div class="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Status Kehadiran</label>
-                                                    <select name="keterangan" class="w-full rounded border-gray-300 text-xs">
-                                                        <option value="hadir" {{ $att->keterangan === 'hadir' ? 'selected' : '' }}>Hadir</option>
-                                                        <option value="izin" {{ $att->keterangan === 'izin' ? 'selected' : '' }}>Izin</option>
-                                                        <option value="libur" {{ $att->keterangan === 'libur' ? 'selected' : '' }}>Libur</option>
-                                                        <option value="alpha" {{ $att->keterangan === 'alpha' ? 'selected' : '' }}>Alpha</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Lembur (Menit)</label>
-                                                    <input type="number" name="overtime_minutes" value="{{ $att->overtime_minutes ?? 0 }}" min="0" class="w-full rounded border-gray-300 text-xs">
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <label class="block text-xs font-medium text-gray-700 mb-1">Catatan / Keterangan Notes</label>
-                                                <textarea name="anomaly_reason" rows="2" placeholder="Catatan jam atau keterangan..." class="w-full rounded border-gray-300 text-xs">{{ $att->anomaly_reason }}</textarea>
+                                            <div class="rounded border border-orange-200 bg-orange-50 p-3 text-[11px] text-orange-800">
+                                                Jam yang diubah akan ditandai <span class="font-bold text-orange-600">diedit</span> di tabel (bukan jam asli mesin absen).
                                             </div>
 
                                             <div class="flex justify-end gap-2 border-t pt-3">

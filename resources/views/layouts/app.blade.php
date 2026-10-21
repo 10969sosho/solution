@@ -44,7 +44,7 @@
             <!-- Navigation -->
             <nav class="flex-1 overflow-y-auto p-4 space-y-2" x-data="{
                 openGroups: {
-                    master: @js(request()->is(['employees*', 'golongans*', 'jabatans*', 'lokasis*'])),
+                    master: @js(request()->is(['employees*', 'golongans*', 'jabatans*', 'lokasis*', 'bonus-libur*'])),
                     attendance: @js(request()->is(['attendance*', 'schedules*', 'seasonal*', 'settings*'])),
                     reports: @js(request()->is('reports*')),
                     hr: @js(request()->is(['permits*', 'loans*', 'payrolls*']))
@@ -116,6 +116,9 @@
                         </a>
                         <a href="/potongan-terlambat" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('potongan-terlambat*') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-clock w-5"></i><span class="ml-3">Potongan Terlambat</span>
+                        </a>
+                        <a href="{{ route('bonus-libur.index') }}" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('bonus-libur*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-gift w-5"></i><span class="ml-3">Master Bonus Libur</span>
                         </a>
                     </div>
                 </div>

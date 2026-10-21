@@ -307,10 +307,22 @@ class BriefingRequirementsTest extends TestCase
         $this->assertSame(17341.04, (float) $payroll->nominal_lembur);
         $this->assertSame(3517341.04, (float) $payroll->grand_total);
 
-        // Test manual loan deduction override
-        $payrollManualLoan = $service->generate($employee, 2026, 8, 100000);
-        $this->assertSame(100000.0, (float) $payrollManualLoan->loan_deduction);
-        // Recalculated Grand Total with 100,000 loan deduction instead of 200,000 (+100,000) = 3,617,341.04
-        $this->assertSame(3617341.04, (float) $payrollManualLoan->grand_total);
+        // Potongan pinjaman otomatis dari transaksi Potong Pinjaman (loan_payments),
+        // bukan input manual di baris payroll.
+        $payrollAgain = $service->generate($employee, 2026, 8);
+        $this->assertSame(200000.0, (float) $payrollAgain->loan_deduction);
+        $this->assertSame(3517341.04, (float) $payrollAgain->grand_total);
+
+        // Tambah satu transaksi potong pinjaman lagi di bulan yang sama.
+        LoanPayment::create([
+            'loan_id' => $loan->id,
+            'employee_id' => $employee->id,
+            'payment_date' => '2026-08-20',
+            'amount' => 100000,
+        ]);
+
+        $payrollExtra = $service->generate($employee, 2026, 8);
+        $this->assertSame(300000.0, (float) $payrollExtra->loan_deduction);
+        $this->assertSame(3417341.04, (float) $payrollExtra->grand_total);
     }
 }

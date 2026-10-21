@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Employee;
 use App\Models\Loan;
 use App\Models\LoanPayment;
-use App\Models\Payroll;
 use App\Models\Permit;
 use App\Services\PayrollService;
 use Tests\TestCase;
@@ -62,29 +61,35 @@ class PayrollTest extends TestCase
         $this->assertSame(250000.0, (float) $payroll->loan_deduction);
     }
 
-    public function test_attendance_bonus_given_when_no_approved_permit(): void
+    public function test_bonus_libur_given_when_no_leave_taken(): void
     {
         $payroll = app(PayrollService::class)->generate($this->employee, 2026, 8);
 
-        $this->assertSame(200000.0, (float) $payroll->attendance_bonus);
+        // Jatah libur 1 hari (Kandang), gaji 3.000.000 >= batas 2.250.000
+        // => (3.000.000 / 30) * 1,5 * 1 hari = 150.000
+        $this->assertSame(150000.0, (float) $payroll->attendance_bonus);
+        $this->assertSame(150000.0, (float) $payroll->bonus_libur);
     }
 
-    public function test_attendance_bonus_skipped_when_approved_permit_exists(): void
+    public function test_bonus_libur_skipped_when_leave_taken(): void
     {
         Permit::create([
             'employee_id' => $this->employee->id,
             'permit_date' => '2026-08-12',
-            'type' => 'no_deduction',
-            'reason' => 'Acara keluarga',
+            'type' => Permit::TYPE_LIBUR,
+            'leave_duration' => '1_hari',
+            'reason' => 'Libur keluarga',
             'status' => 'approved',
-            'duration_minutes' => 120,
-            'start_time' => '08:00:00',
-            'end_time' => '10:00:00',
+            'duration_minutes' => 1439,
+            'start_time' => '00:00:00',
+            'end_time' => '23:59:00',
         ]);
 
         $payroll = app(PayrollService::class)->generate($this->employee, 2026, 8);
 
+        // Jatah libur 1 hari sudah diambil => tidak ada sisa, bonus 0
         $this->assertSame(0.0, (float) $payroll->attendance_bonus);
+        $this->assertSame(0.0, (float) $payroll->bonus_libur);
     }
 
     public function test_paid_payroll_cannot_be_regenerated(): void

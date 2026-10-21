@@ -4,76 +4,58 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\NightGuard;
+use App\Services\AttendanceProcessingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class NightGuardController extends Controller
 {
+    public function __construct(private AttendanceProcessingService $attendanceService) {}
+
     /**
-     * Menampilkan daftar tanggal jaga malam dalam satu bulan.
-     * Mirip list kompilasi, status diganti nama karyawan (dropdown), aksi konfirmasi dan edit.
+     * Menu Jaga Malam - tampilan & alur seperti Absen Daily.
+     * Menampilkan seluruh petugas jaga malam (17:00 - 06:00) pada satu tanggal.
      */
     public function index(Request $request)
     {
-        $year = (int) $request->input('year', now()->year);
-        $month = (int) $request->input('month', now()->month);
-
-        $start = Carbon::create($year, $month, 1)->startOfMonth();
-        $end = $start->copy()->endOfMonth();
-        $totalDays = $end->day;
+        $dateStr = $request->input('date', now()->toDateString());
+        $date = Carbon::parse($dateStr);
 
         $employees = Employee::where('status', 'active')
+            ->where('is_night_guard', true)
             ->orderBy('name')
             ->get();
 
-        $nightGuards = NightGuard::whereBetween('date', [$start->toDateString(), $end->toDateString()])
-            ->with('employee')
-            ->get()
-            ->keyBy(fn ($ng) => $ng->date->toDateString());
+        $rows = [];
+        $presentCount = 0;
 
-        $days = [];
-        $countConfirmed = 0;
-        $countDraft = 0;
-        $countEmpty = 0;
+        foreach ($employees as $employee) {
+            $day = $this->attendanceService->processNight($employee, $date->copy());
 
-        for ($d = 1; $d <= $totalDays; $d++) {
-            $date = Carbon::create($year, $month, $d);
-            $dateStr = $date->toDateString();
-            $ng = $nightGuards->get($dateStr);
-
-            if ($ng && $ng->status === 'confirmed') {
-                $countConfirmed++;
-            } elseif ($ng && $ng->employee_id) {
-                $countDraft++;
-            } else {
-                $countEmpty++;
+            if ($day['present']) {
+                $presentCount++;
             }
 
-            $days[] = [
-                'day' => $d,
-                'date' => $dateStr,
-                'day_name' => $date->locale('id')->isoFormat('dddd'),
-                'is_weekend' => $date->isWeekend(),
-                'night_guard' => $ng,
-                'employee_id' => $ng?->employee_id,
-                'status' => $ng?->status ?? 'empty',
+            $rows[] = [
+                'employee' => $employee,
+                'check_in' => $day['check_locks']['check_in']
+                    ? $day['check_locks']['check_in']['scan_time']->format('H:i')
+                    : '-',
+                'check_out' => $day['check_locks']['check_out']
+                    ? $day['check_locks']['check_out']['scan_time']->format('H:i')
+                    : '-',
+                'work_minutes' => $day['total_work_minutes'],
+                'late_minutes' => $day['late_minutes'],
+                'early_leave_minutes' => $day['early_leave_minutes'],
+                'present' => $day['present'],
             ];
         }
 
-        return view('attendance.night_guard', compact(
-            'days',
-            'employees',
-            'year',
-            'month',
-            'totalDays',
-            'countConfirmed',
-            'countDraft',
-            'countEmpty'
-        ));
+        return view('attendance.night_guard', compact('rows', 'dateStr', 'employees', 'presentCount'));
     }
 
     /**
-     * Update atau Konfirmasi Jaga Malam per tanggal.
+     * Update atau Konfirmasi Jaga Malam per tanggal (backward compatibility).
      */
     public function update(Request $request)
     {
@@ -90,14 +72,15 @@ class NightGuardController extends Controller
 
         if ($action === 'clear') {
             $nightGuard->delete();
+
             return back()->with('success', "Penugasan jaga malam tanggal {$dateStr} berhasil dihapus.");
         }
 
         $nightGuard->employee_id = $validated['employee_id'] ?? null;
 
         if ($action === 'confirm') {
-            if (!$nightGuard->employee_id) {
-                return back()->with('error', "Pilih karyawan terlebih dahulu sebelum mengonfirmasi.");
+            if (! $nightGuard->employee_id) {
+                return back()->with('error', 'Pilih karyawan terlebih dahulu sebelum mengonfirmasi.');
             }
             $nightGuard->status = 'confirmed';
             $nightGuard->confirmed_at = now();
@@ -109,6 +92,7 @@ class NightGuardController extends Controller
         $nightGuard->save();
 
         $statusMsg = $action === 'confirm' ? 'dikonfirmasi' : 'disimpan sebagai draft';
+
         return back()->with('success', "Jaga malam tanggal {$dateStr} berhasil {$statusMsg}.");
     }
 }

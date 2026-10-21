@@ -31,6 +31,7 @@ class Employee extends Model
         'payment_method',
         'leave_quota',
         'is_night_guard',
+        'uang_jaga_malam',
     ];
 
     protected $casts = [
@@ -40,6 +41,7 @@ class Employee extends Model
         'jam_masuk_normal' => 'string',
         'is_night_guard' => 'boolean',
         'leave_quota' => 'integer',
+        'uang_jaga_malam' => 'decimal:2',
     ];
 
     public function attendanceLogs()

@@ -156,6 +156,13 @@
                         </label>
                     </div>
                 </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Uang Jaga Malam (Rp / bulan)</label>
+                    <input type="number" name="uang_jaga_malam" value="{{ old('uang_jaga_malam', 0) }}" min="0" step="1"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <p class="text-[11px] text-gray-500 mt-1">Nominal ini yang dibayarkan di Payroll. Khusus Mandor jaga malam mengikuti ketentuan Rp 600.000 jika dikosongkan.</p>
+                </div>
             </div>
 
             <div class="flex space-x-3 pt-4">

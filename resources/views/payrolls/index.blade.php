@@ -65,7 +65,7 @@
                     <th class="px-3 py-3 text-right">Jaga Malam</th>
                     <th class="px-3 py-3 text-right">Bonus Libur</th>
                     <th class="px-3 py-3 text-right">Pot. Masuk</th>
-                    <th class="px-4 py-3 text-center">Pot. Pinjaman (Manual)</th>
+                    <th class="px-4 py-3 text-center">Pot. Pinjaman</th>
                     <th class="px-3 py-3 text-right">Sisa Pinjaman</th>
                     <th class="px-4 py-3 text-right font-bold text-gray-900">Grand Total</th>
                     <th class="px-2 py-3 text-center">Metode</th>
@@ -146,21 +146,9 @@
                             {{ $canSee ? '-Rp ' . number_format($payroll->potongan_masuk, 0, ',', '.') : '••••••' }}
                         </td>
 
-                        <!-- Input Manual Potongan Pinjaman -->
-                        <td class="px-4 py-2 text-center">
-                            @if(!$canSee)
-                                ••••••
-                            @elseif($payroll->status !== 'paid')
-                                <form action="{{ route('payrolls.updateLoan', $payroll->id) }}" method="POST" class="flex items-center justify-center gap-1">
-                                    @csrf
-                                    <input type="number" name="pinjaman_deduction" value="{{ (int) $payroll->pinjaman_deduction }}" class="w-24 text-xs font-mono rounded border-gray-300 py-1 px-1.5 focus:ring-blue-500 focus:border-blue-500 text-right">
-                                    <button type="submit" class="px-2 py-1 bg-gray-200 hover:bg-blue-600 hover:text-white rounded text-[10px] font-semibold transition" title="Simpan potongan pinjaman">
-                                        <i class="fas fa-save"></i>
-                                    </button>
-                                </form>
-                            @else
-                                <span class="font-mono text-gray-700">-Rp {{ number_format($payroll->pinjaman_deduction, 0, ',', '.') }}</span>
-                            @endif
+                        <!-- Potongan Pinjaman (dari menu Pinjaman/Kasbon) -->
+                        <td class="px-4 py-2 text-center font-mono text-gray-700">
+                            {{ $canSee ? '-Rp ' . number_format($payroll->pinjaman_deduction, 0, ',', '.') : '••••••' }}
                         </td>
 
                         <!-- Sisa Pinjaman -->

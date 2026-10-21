@@ -4,12 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Employee;
 use App\Models\Golongan;
-use App\Models\Jabatan;
 use App\Models\Loan;
 use App\Models\NightGuard;
 use App\Models\Payroll;
-use App\Models\Permit;
-use Carbon\Carbon;
 use Tests\TestCase;
 
 class NewRequirementsTest extends TestCase
@@ -83,6 +80,8 @@ class NewRequirementsTest extends TestCase
             'name' => 'Agus Jaga',
             'position' => 'Security',
             'status' => 'active',
+            'is_night_guard' => true,
+            'uang_jaga_malam' => 350000,
         ]);
 
         $response = $this->get(route('attendance.night-guard', ['year' => 2026, 'month' => 10]));
