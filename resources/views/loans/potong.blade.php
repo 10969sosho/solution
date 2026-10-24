@@ -31,7 +31,8 @@
     <div class="bg-orange-50 border border-orange-200 rounded-xl p-4 text-sm text-orange-800">
         <i class="fas fa-info-circle mr-2"></i>
         Nominal yang dicatat di sini akan otomatis menjadi potongan <strong>Cicilan Pinjaman / Bon</strong> pada Payroll
-        sesuai tanggal potong. Tidak perlu lagi mengisi potongan pinjaman manual di baris Payroll.
+        bulan potong gaji yang dipilih (disimpan sebagai tanggal 1 bulan tersebut), dan otomatis menambah kolom
+        <strong>Terbayar</strong> di menu Pinjaman/Kasbon. Tidak perlu mengisi potongan pinjaman manual di baris Payroll.
     </div>
 
     <div class="bg-white rounded-xl shadow-sm p-6">
@@ -73,7 +74,7 @@
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Karyawan</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tgl Pinjam</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Sisa Bon</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Potong</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Potong Gaji Bulan</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nominal Potong</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catatan</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
@@ -91,7 +92,7 @@
                         <td colspan="4" class="px-4 py-3">
                             <form action="{{ route('loans.payments', $loan) }}" method="POST" class="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
                                 @csrf
-                                <input type="date" name="payment_date" value="{{ now()->toDateString() }}" required
+                                <input type="month" name="payment_month" value="{{ old('payment_month', now()->format('Y-m')) }}" required
                                     class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
                                 <input type="number" name="amount" min="1" max="{{ (float) $loan->remaining_balance }}" step="1" required
                                     placeholder="Nominal" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">

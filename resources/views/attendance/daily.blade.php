@@ -7,6 +7,19 @@
     @if(session('success'))
         <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{{ session('success') }}</div>
     @endif
+    @if(session('error'))
+        <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ session('error') }}</div>
+    @endif
+    @if($errors->any())
+        <div class="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <strong class="font-semibold"><i class="fas fa-exclamation-circle mr-1"></i>Izin belum tersimpan, periksa isian berikut:</strong>
+            <ul class="mt-2 list-disc list-inside space-y-1">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
     <!-- Header & Navigasi Tanggal -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
@@ -337,6 +350,9 @@
                     <option value="setengah_hari">Setengah Hari (Kurangi 0.5 kuota libur)</option>
                 </select>
             </label>
+            <label class="hidden text-xs font-medium text-gray-700" data-permit-nominal>Nominal potong gaji (Rp)
+                <input type="number" name="__NOMINAL__" min="0" step="1" placeholder="Contoh: 50000" class="mt-1 w-full rounded border-gray-300 text-sm">
+            </label>
             <label class="hidden text-xs font-medium text-gray-700" data-permit-minutes>Menit izin
                 <input type="number" name="__MINUTES__" min="1" placeholder="Masukkan jumlah menit" class="mt-1 w-full rounded border-gray-300 text-sm">
             </label>
@@ -384,6 +400,7 @@
             .replaceAll('__TYPE__', p + '[type]')
             .replaceAll('__LEAVE_DURATION__', p + '[leave_duration]')
             .replaceAll('__MINUTES__', p + '[permit_minutes]')
+            .replaceAll('__NOMINAL__', p + '[nominal]')
             .replaceAll('__REASON__', p + '[reason]');
         wrap.insertAdjacentHTML('beforeend', html);
         const row = wrap.lastElementChild;
@@ -424,11 +441,18 @@
         if (!row) return;
         const leaveDuration = row.querySelector('[data-permit-leave-duration]');
         const minutes = row.querySelector('[data-permit-minutes]');
+        const nominal = row.querySelector('[data-permit-nominal]');
 
         const isLibur = select.value === 'libur';
         const isNoDeduction = select.value === 'no_deduction';
+        const needsNominal = select.value === 'salary_deduction' || select.value === 'addition';
 
         if (leaveDuration) leaveDuration.classList.toggle('hidden', !isLibur);
+        if (nominal) {
+            nominal.classList.toggle('hidden', !needsNominal);
+            const nominalInput = nominal.querySelector('input');
+            if (nominalInput) nominalInput.required = needsNominal;
+        }
         if (minutes) {
             minutes.classList.toggle('hidden', !isNoDeduction);
             const minInput = minutes.querySelector('input');

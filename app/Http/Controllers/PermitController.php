@@ -9,6 +9,7 @@ use App\Models\WorkSetting;
 use App\Services\AttendanceProcessingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class PermitController extends Controller
@@ -143,27 +144,29 @@ class PermitController extends Controller
         $validated = $request->validate($rules);
 
         $count = 0;
-        foreach ($validated['permits'] as $row) {
-            $startTime = $row['start_time'] ?? '08:00';
-            $endTime = $row['end_time'] ?? '17:00';
-            $duration = $this->durationInMinutes($startTime, $endTime);
-            Permit::create([
-                'employee_id' => $validated['employee_id'],
-                'permit_date' => $validated['permit_date'],
-                'category' => $row['category'],
-                'type' => $row['type'],
-                'leave_duration' => $row['leave_duration'] ?? null,
-                'start_time' => $startTime,
-                'end_time' => $endTime,
-                'duration_minutes' => $row['type'] === 'no_deduction'
-                    ? (int) ($row['permit_minutes'] ?? $duration)
-                    : $duration,
-                'nominal' => (float) ($row['nominal'] ?? 0),
-                'reason' => $row['reason'],
-                'status' => 'approved',
-            ]);
-            $count++;
-        }
+        DB::transaction(function () use ($validated, &$count) {
+            foreach ($validated['permits'] as $row) {
+                $startTime = $row['start_time'] ?? '08:00';
+                $endTime = $row['end_time'] ?? '17:00';
+                $duration = $this->durationInMinutes($startTime, $endTime);
+                Permit::create([
+                    'employee_id' => $validated['employee_id'],
+                    'permit_date' => $validated['permit_date'],
+                    'category' => $row['category'],
+                    'type' => $row['type'],
+                    'leave_duration' => $row['leave_duration'] ?? null,
+                    'start_time' => $startTime,
+                    'end_time' => $endTime,
+                    'duration_minutes' => $row['type'] === 'no_deduction'
+                        ? (int) ($row['permit_minutes'] ?? $duration)
+                        : $duration,
+                    'nominal' => (float) ($row['nominal'] ?? 0),
+                    'reason' => $row['reason'],
+                    'status' => 'approved',
+                ]);
+                $count++;
+            }
+        });
 
         $dateStr = Carbon::parse($validated['permit_date'])->toDateString();
         Permit::syncDailyAttendance((int) $validated['employee_id'], $dateStr);
@@ -192,21 +195,23 @@ class PermitController extends Controller
 
         $created = 0;
         $synced = [];
-        foreach ($validated['permits'] as $permitData) {
-            $employee = Employee::find($permitData['employee_id']);
-            $workSetting = WorkSetting::getActiveForGolongan($employee->golongan_id, Carbon::parse($permitData['permit_date']));
+        DB::transaction(function () use ($validated, &$created, &$synced) {
+            foreach ($validated['permits'] as $permitData) {
+                $employee = Employee::find($permitData['employee_id']);
+                $workSetting = WorkSetting::getActiveForGolongan($employee->golongan_id, Carbon::parse($permitData['permit_date']));
 
-            $permitData['start_time'] = $workSetting ? substr($workSetting->check_in_time, 0, 5) : '07:00';
-            $permitData['end_time'] = $workSetting ? substr($workSetting->check_out_time, 0, 5) : '17:00';
-            $permitData['duration_minutes'] = $permitData['late_minutes'] ?? 0;
-            $permitData['type'] = $this->determineType($permitData['duration_minutes'], $permitData['deduction_type']);
-            $permitData['status'] = 'approved';
-            $permitData['reason'] = $permitData['reason'] ?? 'Diproses dari laporan absensi';
+                $permitData['start_time'] = $workSetting ? substr($workSetting->check_in_time, 0, 5) : '07:00';
+                $permitData['end_time'] = $workSetting ? substr($workSetting->check_out_time, 0, 5) : '17:00';
+                $permitData['duration_minutes'] = $permitData['late_minutes'] ?? 0;
+                $permitData['type'] = $this->determineType($permitData['duration_minutes'], $permitData['deduction_type']);
+                $permitData['status'] = 'approved';
+                $permitData['reason'] = $permitData['reason'] ?? 'Diproses dari laporan absensi';
 
-            Permit::create($permitData);
-            $synced[] = [(int) $permitData['employee_id'], Carbon::parse($permitData['permit_date'])->toDateString()];
-            $created++;
-        }
+                Permit::create($permitData);
+                $synced[] = [(int) $permitData['employee_id'], Carbon::parse($permitData['permit_date'])->toDateString()];
+                $created++;
+            }
+        });
 
         foreach ($synced as [$employeeId, $dateStr]) {
             Permit::syncDailyAttendance($employeeId, $dateStr);

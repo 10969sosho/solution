@@ -252,4 +252,70 @@ class RevisionTest extends TestCase
         $this->assertNull($record->tipe_nominal_izin);
         $this->assertSame(0.0, (float) $record->nominal_izin);
     }
+
+    public function test_kelola_izin_modal_has_nominal_field_and_reports_validation_errors(): void
+    {
+        $this->loginAsSuperAdmin();
+
+        $employee = Employee::create([
+            'employee_id' => 'EMPI004',
+            'name' => 'Modal Izin',
+            'position' => 'Kandang',
+            'status' => 'active',
+            'salary' => 2500000,
+        ]);
+
+        DailyAttendance::create([
+            'employee_id' => $employee->id,
+            'date' => '2026-08-10',
+            'check_in' => '08:30:00',
+            'check_out' => '17:00:00',
+            'is_anomaly' => true,
+        ]);
+
+        $page = $this->get(route('attendance.daily', ['date' => '2026-08-10']));
+        $page->assertOk();
+        $page->assertSee('name="__NOMINAL__"', false);
+        $page->assertSee('data-permit-nominal', false);
+
+        // Payload persis seperti form modal (type default potong gaji) tanpa nominal -> validasi gagal & pesan tampil.
+        $this->post(route('permits.store'), [
+            'source' => 'attendance_daily',
+            'employee_id' => $employee->id,
+            'permit_date' => '2026-08-10',
+            'permits' => [
+                [
+                    'category' => 'terlambat',
+                    'type' => 'salary_deduction',
+                    'start_time' => '08:00',
+                    'end_time' => '08:15',
+                    'reason' => 'Tanpa nominal',
+                ],
+            ],
+        ])->assertSessionHasErrors('permits.0.nominal');
+
+        $this->get(route('attendance.daily', ['date' => '2026-08-10']))
+            ->assertSee('Izin belum tersimpan', false);
+
+        // Payload lengkap (ada nominal) -> tersimpan, redirect + notifikasi sukses.
+        $this->post(route('permits.store'), [
+            'source' => 'attendance_daily',
+            'employee_id' => $employee->id,
+            'permit_date' => '2026-08-10',
+            'permits' => [
+                [
+                    'category' => 'terlambat',
+                    'type' => 'salary_deduction',
+                    'start_time' => '08:00',
+                    'end_time' => '08:15',
+                    'nominal' => 50000,
+                    'reason' => 'Telat macet',
+                ],
+            ],
+        ])->assertRedirect(route('attendance.daily', ['date' => '2026-08-10']));
+
+        $this->assertSame(1, Permit::where('employee_id', $employee->id)->count());
+        $this->get(route('attendance.daily', ['date' => '2026-08-10']))
+            ->assertSee('izin berhasil ditambahkan');
+    }
 }

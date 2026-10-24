@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\Loan;
 use App\Models\LoanPayment;
 use App\Models\Payroll;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class LoanController extends Controller
@@ -126,6 +127,12 @@ class LoanController extends Controller
 
     public function storePayment(Request $request, Loan $loan)
     {
+        // Form "Potong Pinjaman" memilih bulan (YYYY-MM) -> disimpan sebagai tanggal 1 bulan tsb.
+        $request->validate(['payment_month' => 'nullable|date_format:Y-m']);
+        if ($request->filled('payment_month')) {
+            $request->merge(['payment_date' => Carbon::parse($request->input('payment_month') . '-01')->toDateString()]);
+        }
+
         $validated = $request->validate([
             'payment_date' => 'required|date',
             'amount' => 'required|numeric|min:0.01',
