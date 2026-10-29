@@ -126,12 +126,9 @@ class PermitController extends Controller
         if (is_array($rows)) {
             foreach (array_keys($rows) as $i) {
                 $type = $rows[$i]['type'] ?? null;
-                $rules["permits.$i.nominal"] = [
-                    'nullable',
-                    'numeric',
-                    'min:0',
-                    Rule::requiredIf(in_array($type, ['salary_deduction', 'addition'], true)),
-                ];
+                // Nominal TIDAK wajib: popup Absen Daily hanya menandai tipe potong/tidak potong.
+                // Nominal potong gaji diinput terpisah di menu Manajemen Izin.
+                $rules["permits.$i.nominal"] = ['nullable', 'numeric', 'min:0'];
                 $rules["permits.$i.permit_minutes"] = [
                     'nullable',
                     'integer',
@@ -240,6 +237,74 @@ class PermitController extends Controller
         Permit::syncDailyAttendance($employeeId, $dateStr);
 
         return redirect()->route('permits.index')->with('success', 'Izin berhasil dihapus');
+    }
+
+    /**
+     * MANAJEMEN IZIN: rekap izin potong / tidak potong per karyawan per bulan
+     * + input nominal potongan izin yang ditarik ke Rekap Bulanan & Penggajian.
+     */
+    public function management(Request $request)
+    {
+        $year = (int) $request->input('year', now()->year);
+        $month = (int) $request->input('month', now()->month);
+
+        $start = Carbon::create($year, $month, 1)->startOfMonth();
+        $end = $start->copy()->endOfMonth();
+
+        $employees = Employee::query()
+            ->where('status', 'active')
+            ->with(['golongan', 'jabatan'])
+            ->orderBy('name')
+            ->get();
+
+        $permits = Permit::whereBetween('permit_date', [$start->toDateString(), $end->toDateString()])
+            ->where('status', 'approved')
+            ->get()
+            ->groupBy('employee_id');
+
+        $deductions = \App\Models\PermitDeduction::where('period_year', $year)
+            ->where('period_month', $month)
+            ->get()
+            ->keyBy('employee_id');
+
+        $rows = $employees->map(function ($employee) use ($permits, $deductions) {
+            $mine = $permits->get($employee->id, collect());
+
+            return [
+                'employee' => $employee,
+                'potong_days' => $mine->where('type', Permit::TYPE_SALARY_DEDUCTION)->unique('permit_date')->count(),
+                'tidak_potong_days' => $mine->where('type', Permit::TYPE_NO_DEDUCTION)->unique('permit_date')->count(),
+                'deduction' => $deductions->get($employee->id),
+            ];
+        });
+
+        return view('permits.management', compact('rows', 'year', 'month'));
+    }
+
+    /**
+     * Simpan nominal potongan izin 1 karyawan untuk 1 periode bulan (upsert).
+     */
+    public function storeManagement(Request $request)
+    {
+        $validated = $request->validate([
+            'employee_id' => 'required|exists:employees,id',
+            'year' => 'required|integer|min:2000|max:2100',
+            'month' => 'required|integer|min:1|max:12',
+            'amount' => 'required|numeric|min:0',
+        ]);
+
+        \App\Models\PermitDeduction::updateOrCreate(
+            [
+                'employee_id' => $validated['employee_id'],
+                'period_year' => $validated['year'],
+                'period_month' => $validated['month'],
+            ],
+            ['amount' => $validated['amount']]
+        );
+
+        return redirect()
+            ->route('permits.management', ['year' => $validated['year'], 'month' => $validated['month']])
+            ->with('success', 'Nominal potongan izin berhasil disimpan');
     }
 
     private function getPendingAttendanceIssues(Request $request)

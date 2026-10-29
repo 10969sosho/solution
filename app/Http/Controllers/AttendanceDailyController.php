@@ -158,7 +158,7 @@ class AttendanceDailyController extends Controller
 
         foreach (['check_in', 'break_out', 'break_in', 'check_out'] as $field) {
             if ($request->has($field)) {
-                $submitted = $validated[$field] ? $validated[$field] . ':00' : null;
+                $submitted = $validated[$field] ? $validated[$field].':00' : null;
                 $current = $daily->{$field};
 
                 if ($submitted !== $current) {
@@ -364,12 +364,13 @@ class AttendanceDailyController extends Controller
             $totalOvertimeMinutes = 0;
 
             foreach ($dailies as $d) {
-                // Jika izin ada nominal, keterlambatan diabaikan
+                // Hari dengan izin: keterlambatan diabaikan (tanpa potongan terlambat
+                // otomatis). Nominal potong izin ditentukan di menu Manajemen Izin.
                 if ($d->isLateIgnored()) {
                     if ($d->tipe_nominal_izin === 'tambah_gaji') {
                         $nominalIzinTambah += (float) $d->nominal_izin;
                     } elseif ($d->tipe_nominal_izin === 'potong_gaji') {
-                        $nominalIzinPotong += (float) $d->nominal_izin;
+                        $nominalIzinPotong += (float) $d->nominal_izin; // fallback bila Manajemen Izin belum diisi
                     }
                 } else {
                     $totalLateInMinutes += $d->late_check_in_minutes;
@@ -393,6 +394,12 @@ class AttendanceDailyController extends Controller
             $nominalPotonganMasukKerja = $this->lookupPotonganFine($employee, $totalLateInMinutes, 'masuk_kerja', $potonganMasters);
             $nominalPotonganSetelahIstirahat = $this->lookupPotonganFine($employee, $totalLateBreakInMinutes, 'setelah_istirahat', $potonganMasters);
             $totalNominalTerlambat = $nominalPotonganMasukKerja + $nominalPotonganSetelahIstirahat;
+
+            // Potongan izin: nominal dari menu Manajemen Izin (per periode bulan)
+            $manualPotonganIzin = \App\Models\PermitDeduction::amountFor($employee->id, $year, $month);
+            if ($manualPotonganIzin !== null) {
+                $nominalIzinPotong = round($manualPotonganIzin, 2);
+            }
 
             // Aturan Jatah Libur & Potongan Masuk (reset tiap tanggal 1 tanpa menghilangkan sisa libur bulan lalu)
             $quota = $employee->getEffectiveLeaveQuotaForMonth($year, $month);

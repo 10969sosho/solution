@@ -260,12 +260,15 @@
                                         <div class="my-4 space-y-2">
                                             @forelse($employeePermits as $permit)
                                                 <div class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs">
-                                                    <span>{{ ucfirst(str_replace('_', ' ', $permit->category)) }} · {{ $permit->type === 'libur' ? 'Libur (' . ($permit->leave_duration === 'setengah_hari' ? 'Setengah hari' : '1 hari') . ')' : ($permit->type === 'no_deduction' ? 'Tidak potong · ' . $permit->duration_minutes . ' menit' : 'Potong gaji · Rp ' . number_format($permit->nominal, 0, ',', '.')) }}</span>
+                                                    <span>{{ ucfirst(str_replace('_', ' ', $permit->category)) }} · {{ $permit->type === 'libur' ? 'Libur (' . ($permit->leave_duration === 'setengah_hari' ? 'Setengah hari' : '1 hari') . ')' : ($permit->type === 'no_deduction' ? 'Tidak potong · ' . $permit->duration_minutes . ' menit' : 'Potong gaji' . ((float) $permit->nominal > 0 ? ' · Rp ' . number_format($permit->nominal, 0, ',', '.') : '')) }}</span>
                                                     <span class="text-gray-500">{{ $permit->reason }}</span>
                                                 </div>
                                             @empty
                                                 <p class="text-xs text-gray-500">Belum ada izin pada tanggal ini.</p>
                                             @endforelse
+                                            <p class="rounded border border-blue-100 bg-blue-50 p-2 text-[11px] text-blue-800">
+                                                <i class="fas fa-info-circle mr-1"></i>Popup ini hanya menandai tipe izin (<strong>potong gaji</strong> / <strong>tidak potong</strong>). Nominal potongan izin diinput lewat menu <strong>HR &amp; Keuangan &rarr; Manajemen Izin</strong> per bulan sebelum penggajian.
+                                            </p>
                                         </div>
                                         <form action="{{ route('permits.store') }}" method="POST" class="space-y-3 border-t pt-4">
                                             @csrf
@@ -350,9 +353,6 @@
                     <option value="setengah_hari">Setengah Hari (Kurangi 0.5 kuota libur)</option>
                 </select>
             </label>
-            <label class="hidden text-xs font-medium text-gray-700" data-permit-nominal>Nominal potong gaji (Rp)
-                <input type="number" name="__NOMINAL__" min="0" step="1" placeholder="Contoh: 50000" class="mt-1 w-full rounded border-gray-300 text-sm">
-            </label>
             <label class="hidden text-xs font-medium text-gray-700" data-permit-minutes>Menit izin
                 <input type="number" name="__MINUTES__" min="1" placeholder="Masukkan jumlah menit" class="mt-1 w-full rounded border-gray-300 text-sm">
             </label>
@@ -400,7 +400,6 @@
             .replaceAll('__TYPE__', p + '[type]')
             .replaceAll('__LEAVE_DURATION__', p + '[leave_duration]')
             .replaceAll('__MINUTES__', p + '[permit_minutes]')
-            .replaceAll('__NOMINAL__', p + '[nominal]')
             .replaceAll('__REASON__', p + '[reason]');
         wrap.insertAdjacentHTML('beforeend', html);
         const row = wrap.lastElementChild;
@@ -441,18 +440,11 @@
         if (!row) return;
         const leaveDuration = row.querySelector('[data-permit-leave-duration]');
         const minutes = row.querySelector('[data-permit-minutes]');
-        const nominal = row.querySelector('[data-permit-nominal]');
 
         const isLibur = select.value === 'libur';
         const isNoDeduction = select.value === 'no_deduction';
-        const needsNominal = select.value === 'salary_deduction' || select.value === 'addition';
 
         if (leaveDuration) leaveDuration.classList.toggle('hidden', !isLibur);
-        if (nominal) {
-            nominal.classList.toggle('hidden', !needsNominal);
-            const nominalInput = nominal.querySelector('input');
-            if (nominalInput) nominalInput.required = needsNominal;
-        }
         if (minutes) {
             minutes.classList.toggle('hidden', !isNoDeduction);
             const minInput = minutes.querySelector('input');

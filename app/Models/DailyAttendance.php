@@ -58,10 +58,11 @@ class DailyAttendance extends Model
     }
 
     /**
-     * Hitung apakah terlambat diabaikan jika terdapat nominal izin.
+     * Keterlambatan diabaikan (tanpa potongan terlambat otomatis) jika hari itu ada izin.
+     * Potongan izin selanjutnya ditentukan manual lewat menu Manajemen Izin.
      */
     public function isLateIgnored(): bool
     {
-        return $this->keterangan === 'izin' && (float) $this->nominal_izin > 0;
+        return in_array($this->keterangan, ['izin', 'libur'], true);
     }
 }

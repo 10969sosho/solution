@@ -50,9 +50,12 @@ class PayrollService
                     $totalIzinCount++;
                 }
 
+                // Aturan izin: hari dengan izin (potong/tidak potong) TIDAK dikenakan
+                // potongan terlambat otomatis. Nominal potong izin ditentukan manual
+                // lewat menu Manajemen Izin (PermitDeduction) sebelum penggajian.
                 if ($d->isLateIgnored()) {
                     if ($d->tipe_nominal_izin === 'potong_gaji') {
-                        $izinPotongGaji += (float) $d->nominal_izin;
+                        $izinPotongGaji += (float) $d->nominal_izin; // fallback bila Manajemen Izin belum diisi
                     } elseif ($d->tipe_nominal_izin === 'tambah_gaji') {
                         $izinTambahGaji += (float) $d->nominal_izin;
                     }
@@ -97,9 +100,6 @@ class PayrollService
             // 5. Uang Jaga Malam (nominal dari Data Karyawan)
             $uangJagaMalam = $this->calculateUangJagaMalam($employee);
 
-            // 5. Uang Jaga Malam
-            $uangJagaMalam = $this->calculateUangJagaMalam($employee);
-
             // 6. Nominal Lembur
             $hourlyRate = $baseSalary > 0 ? ($baseSalary / 173) : 0;
             $nominalLembur = round(($totalOvertimeMinutes / 60) * $hourlyRate, 2);
@@ -107,7 +107,14 @@ class PayrollService
             // 7. Pinjaman Karyawan (dari transaksi Potong Pinjaman)
             $pinjamanDeduction = $this->calculateLoanDeduction($employee, $year, $month);
 
-            // 8. Rumus Grand Total Gaji (Section 14 briefing):
+            // 8. Potongan Izin: nominal dari menu Manajemen Izin (per periode bulan).
+            //    Jika belum diinput, fallback ke akumulasi nominal izin harian.
+            $manualPotonganIzin = \App\Models\PermitDeduction::amountFor($employee->id, $year, $month);
+            if ($manualPotonganIzin !== null) {
+                $izinPotongGaji = round($manualPotonganIzin, 2);
+            }
+
+            // 9. Rumus Grand Total Gaji (Section 14 briefing):
             // GRAND TOTAL = GAJI POKOK - POTONGAN TERLAMBAT - IZIN POTONG GAJI + IZIN TAMBAH GAJI
             //               - PINJAMAN - POTONGAN MASUK + BONUSAN + UANG JAGA MALAM + NOMINAL LEMBUR
             $grandTotal = round(
@@ -166,7 +173,11 @@ class PayrollService
             $potonganTerlambatMasuk = $lateDeduction;
             $potonganTerlambatIstirahat = 0;
 
-            $totalDeduction = round($lateDeduction + $pinjamanDeduction + $potonganMasuk, 2);
+            // Potongan izin dari menu Manajemen Izin (konsisten dengan jalur DailyAttendance)
+            $manualPotonganIzin = \App\Models\PermitDeduction::amountFor($employee->id, $year, $month);
+            $izinPotongGaji = round($manualPotonganIzin ?? 0, 2);
+
+            $totalDeduction = round($lateDeduction + $izinPotongGaji + $pinjamanDeduction + $potonganMasuk, 2);
             $totalIncentive = round($bonusLibur + $uangJagaMalam, 2);
             $grandTotal = round($baseSalary - $totalDeduction + $totalIncentive, 2);
         }
@@ -406,10 +417,10 @@ class PayrollService
     }
 
     /**
-     * Hitung potongan terlambat dengan mempertimbangkan izin karyawan.
-     * - Jika ada izin dengan no_deduction untuk hari tersebut → tidak ada potongan
-     * - Jika ada izin dengan salary_deduction → gunakan denda dari izin (bukan ketentuan standar)
-     * - Jika tidak ada izin → gunakan potongan sesuai ketentuan
+     * Hitung potongan terlambat dengan aturan izin:
+     * - Hari TANPA izin → potongan otomatis sesuai master PotonganTerlambat.
+     * - Hari DENGAN izin (terlambat/anomali) → TIDAK dikenakan potongan terlambat
+     *   otomatis; potongannya ditentukan manual lewat menu Manajemen Izin.
      */
     private function calculateLateDeductionWithPermits(Employee $employee, array $attendance, $permits): float
     {
@@ -420,52 +431,17 @@ class PayrollService
                 continue;
             }
 
-            $date = $day['date'];
-            $lateMinutes = $day['late_minutes'];
-            $lateBreakInMinutes = $day['late_break_in_minutes'] ?? 0;
-
-            // Check for permits on this date
-            $dayPermits = $permits->filter(fn ($p) => $p->permit_date->toDateString() === $date);
-
-            // Handle late masuk kerja
-            if ($lateMinutes > 0) {
-                $latePermit = $dayPermits->firstWhere('category', 'terlambat');
-
-                if ($latePermit && $latePermit->late_type === 'masuk_kerja') {
-                    // If no_deduction, skip fine
-                    if ($latePermit->deduction_type === 'no_deduction') {
-                        // No fine
-                    } else {
-                        // salary_deduction: use permit's fine amount
-                        $totalDeduction += (float) ($latePermit->late_fine_amount ?? 0);
-                    }
-                } else {
-                    // No permit, apply standard potongan
-                    $totalDeduction += $this->calculateLateFine($employee, $lateMinutes, 'masuk_kerja');
-                }
+            $dayPermits = $permits->filter(fn ($p) => $p->permit_date->toDateString() === $day['date']);
+            if ($dayPermits->isNotEmpty()) {
+                continue;
             }
 
-            // Handle late masuk istirahat (setelah istirahat)
-            if ($lateBreakInMinutes > 0) {
-                $lateBreakPermit = $dayPermits->firstWhere('category', 'terlambat');
-
-                if ($lateBreakPermit && $lateBreakPermit->late_type === 'setelah_istirahat') {
-                    if ($lateBreakPermit->deduction_type === 'no_deduction') {
-                        // No fine
-                    } else {
-                        $totalDeduction += (float) ($lateBreakPermit->late_fine_amount ?? 0);
-                    }
-                } else {
-                    $totalDeduction += $this->calculateLateFine($employee, $lateBreakInMinutes, 'setelah_istirahat');
-                }
+            if ($day['late_minutes'] > 0) {
+                $totalDeduction += $this->calculateLateFine($employee, $day['late_minutes'], 'masuk_kerja');
             }
 
-            // Handle pulang awal
-            if ($day['early_leave_minutes'] > 0) {
-                $earlyPermit = $dayPermits->firstWhere('category', 'pulang_awal');
-                if ($earlyPermit && $earlyPermit->deduction_type === 'salary_deduction') {
-                    $totalDeduction += (float) ($earlyPermit->late_fine_amount ?? 0);
-                }
+            if (($day['late_break_in_minutes'] ?? 0) > 0) {
+                $totalDeduction += $this->calculateLateFine($employee, $day['late_break_in_minutes'], 'setelah_istirahat');
             }
         }
 
@@ -473,7 +449,8 @@ class PayrollService
     }
 
     /**
-     * Hitung menit terlambat aktual (setelah dikurangi izin no_deduction).
+     * Hitung menit terlambat aktual. Hari yang memiliki izin dikecualikan
+     * dari akumulasi keterlambatan (potongan ditentukan via Manajemen Izin).
      */
     private function calculateActualLateMinutes(array $attendance, $permits): array
     {
@@ -487,29 +464,19 @@ class PayrollService
                 continue;
             }
 
-            $date = $day['date'];
-            $dayPermits = $permits->filter(fn ($p) => $p->permit_date->toDateString() === $date);
-
-            // Late masuk kerja
-            if ($day['late_minutes'] > 0) {
-                $latePermit = $dayPermits->firstWhere('category', 'terlambat');
-                if ($latePermit && $latePermit->late_type === 'masuk_kerja' && $latePermit->deduction_type === 'no_deduction') {
-                    // Exempt from late count
-                } else {
-                    $totalLate += $day['late_minutes'];
-                    $daysLate++;
-                }
+            $dayPermits = $permits->filter(fn ($p) => $p->permit_date->toDateString() === $day['date']);
+            if ($dayPermits->isNotEmpty()) {
+                continue;
             }
 
-            // Late masuk istirahat
+            if ($day['late_minutes'] > 0) {
+                $totalLate += $day['late_minutes'];
+                $daysLate++;
+            }
+
             if (($day['late_break_in_minutes'] ?? 0) > 0) {
-                $lateBreakPermit = $dayPermits->firstWhere('category', 'terlambat');
-                if ($lateBreakPermit && $lateBreakPermit->late_type === 'setelah_istirahat' && $lateBreakPermit->deduction_type === 'no_deduction') {
-                    // Exempt
-                } else {
-                    $totalLateBreakIn += $day['late_break_in_minutes'];
-                    $daysLateBreakIn++;
-                }
+                $totalLateBreakIn += $day['late_break_in_minutes'];
+                $daysLateBreakIn++;
             }
         }
 

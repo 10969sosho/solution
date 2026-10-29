@@ -54,6 +54,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/latest', [AttendanceController::class, 'latest']);
         Route::get('/compilation', [\App\Http\Controllers\AttendanceDailyController::class, 'compilation'])->name('attendance.compilation');
         Route::get('/night-guard', [\App\Http\Controllers\NightGuardController::class, 'index'])->name('attendance.night-guard');
+        Route::get('/night-guard-compilation', [\App\Http\Controllers\NightGuardController::class, 'compilation'])->name('attendance.night-guard-compilation');
         Route::post('/night-guard', [\App\Http\Controllers\NightGuardController::class, 'update'])->name('attendance.night-guard.update');
         Route::get('/daily', [\App\Http\Controllers\AttendanceDailyController::class, 'daily'])->name('attendance.daily');
         Route::post('/daily/{daily}/save', [\App\Http\Controllers\AttendanceDailyController::class, 'saveRow'])->name('attendance.daily.save');
@@ -63,6 +64,8 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::get('/permits', [PermitController::class, 'index'])->name('permits.index');
+    Route::get('/permits/management', [PermitController::class, 'management'])->name('permits.management');
+    Route::post('/permits/management', [PermitController::class, 'storeManagement'])->name('permits.management.store');
     Route::get('/permits/create', [PermitController::class, 'create'])->name('permits.create');
     Route::post('/permits', [PermitController::class, 'store'])->name('permits.store');
     Route::post('/permits/bulk', [PermitController::class, 'storeBulk'])->name('permits.storeBulk');

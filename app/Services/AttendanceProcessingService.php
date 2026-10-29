@@ -193,8 +193,6 @@ class AttendanceProcessingService
 
     /**
      * Proses absensi satu bulan untuk satu karyawan (untuk laporan rincian & payroll).
-     *
-     * @return array
      */
     public function processMonth(Employee $employee, int $year, int $month): array
     {
@@ -241,10 +239,12 @@ class AttendanceProcessingService
     }
 
     /**
-     * Resolve jadwal kerja untuk tanggal tertentu dengan prioritas:
-     * 1. Jam kerja khusus per karyawan (aktif & sudah efektif)
-     * 2. Setting global
-     * Lalu menerapkan penyesuaian jam kerja musiman bila ada.
+     * Resolve jadwal kerja untuk tanggal tertentu dengan hirarki:
+     * 1. Jam Kerja Musiman (SeasonalSchedule aktif) — force jam masuk / delta menit,
+     *    diterapkan paling akhir sehingga menang atas jadwal lain untuk jam masuk/pulang.
+     * 2. Jam Kerja Khusus (EmployeeSchedule aktif & sudah efektif) — override per field.
+     * 3. Setting Jam Kerja per Golongan (WorkSetting) — fallback terakhir.
+     * Keterlambatan, lembur, dan checklock selalu dihitung dari hasil hirarki ini (processDay).
      */
     public function resolveSchedule(Employee $employee, Carbon $date): array
     {
@@ -365,6 +365,7 @@ class AttendanceProcessingService
             [$checkLocks, $ignored] = $this->classifyCheckLocks($logs, $minBreakIn, $breakOutTime);
             $isAnomaly = $logs->count() < 4;
             $anomalyReason = $isAnomaly ? "Checklock hanya {$logs->count()} kali" : null;
+
             return [$checkLocks, $ignored, $isAnomaly, $anomalyReason];
         }
 

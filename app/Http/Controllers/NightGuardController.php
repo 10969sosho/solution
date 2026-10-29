@@ -55,6 +55,72 @@ class NightGuardController extends Controller
     }
 
     /**
+     * LIST KOMPILASI JAGA MALAM: rekap per tanggal dalam 1 bulan untuk
+     * petugas jaga malam (is_night_guard) — mirip List Kompilasi absensi harian.
+     */
+    public function compilation(Request $request)
+    {
+        $year = (int) $request->input('year', now()->year);
+        $month = (int) $request->input('month', now()->month);
+
+        $start = Carbon::create($year, $month, 1)->startOfMonth();
+        $end = $start->copy()->endOfMonth();
+
+        $employees = Employee::where('status', 'active')
+            ->where('is_night_guard', true)
+            ->orderBy('name')
+            ->get();
+
+        $guards = NightGuard::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->get()
+            ->keyBy(fn ($g) => $g->date->toDateString());
+
+        $days = [];
+        $totalPresent = 0;
+        $totalAssigned = 0;
+
+        for ($d = 1; $d <= $end->day; $d++) {
+            $date = Carbon::create($year, $month, $d);
+            $dateStr = $date->toDateString();
+
+            $present = 0;
+            $absentNames = [];
+            foreach ($employees as $employee) {
+                $day = $this->attendanceService->processNight($employee, $date->copy());
+                if ($day['present']) {
+                    $present++;
+                } else {
+                    $absentNames[] = $employee->name;
+                }
+            }
+
+            $totalPresent += $present;
+            $totalAssigned += $employees->count();
+
+            $days[] = [
+                'day' => $d,
+                'date' => $dateStr,
+                'day_name' => $date->locale('id')->isoFormat('dddd'),
+                'is_weekend' => $date->isWeekend(),
+                'present' => $present,
+                'absent' => max(0, $employees->count() - $present),
+                'absent_names' => $absentNames,
+                'guard' => $guards->get($dateStr),
+            ];
+        }
+
+        return view('attendance.night_guard_compilation', [
+            'days' => $days,
+            'year' => $year,
+            'month' => $month,
+            'totalDays' => $end->day,
+            'employees' => $employees,
+            'totalPresent' => $totalPresent,
+            'totalAssigned' => $totalAssigned,
+        ]);
+    }
+
+    /**
      * Update atau Konfirmasi Jaga Malam per tanggal (backward compatibility).
      */
     public function update(Request $request)
