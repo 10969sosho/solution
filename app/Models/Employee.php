@@ -148,6 +148,30 @@ class Employee extends Model
         return (bool) ($this->golongan?->is_confidential ?? false);
     }
 
+    /**
+     * Metode pembayaran efektif untuk payroll & slip gaji.
+     * Tanpa nomor rekening -> otomatis TUNAI (cash), berapa pun pengaturannya.
+     */
+    public function effectivePaymentMethod(): string
+    {
+        $method = strtolower(trim((string) ($this->payment_method ?? '')));
+
+        if (in_array($method, ['cash', 'tunai'], true)) {
+            return 'cash';
+        }
+
+        if (! $this->account_number) {
+            return 'cash';
+        }
+
+        return $method === '' ? 'transfer' : $method;
+    }
+
+    public function hasBankAccount(): bool
+    {
+        return filled($this->account_number);
+    }
+
     public function nightGuards()
     {
         return $this->hasMany(NightGuard::class);

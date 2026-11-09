@@ -31,8 +31,13 @@
     <div class="bg-orange-50 border border-orange-200 rounded-xl p-4 text-sm text-orange-800">
         <i class="fas fa-info-circle mr-2"></i>
         Nominal yang dicatat di sini akan otomatis menjadi potongan <strong>Cicilan Pinjaman / Bon</strong> pada Payroll
-        bulan potong gaji yang dipilih (disimpan sebagai tanggal 1 bulan tersebut), dan otomatis menambah kolom
+        bulan potong gaji yang dipilih (disimpan sebagai <strong>tanggal 1</strong> bulan tersebut), dan otomatis menambah kolom
         <strong>Terbayar</strong> di menu Pinjaman/Kasbon. Tidak perlu mengisi potongan pinjaman manual di baris Payroll.
+        <br>
+        <span class="text-[12px]">
+            Contoh: sisa bon bulan Oktober Rp 500.000 &rarr; potong gaji bulan <strong>1 November</strong> Rp 250.000
+            &rarr; sisa bon di bulan November menjadi <strong>Rp 250.000</strong>.
+        </span>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm p-6">
@@ -92,8 +97,24 @@
                         <td colspan="4" class="px-4 py-3">
                             <form action="{{ route('loans.payments', $loan) }}" method="POST" class="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
                                 @csrf
-                                <input type="month" name="payment_month" value="{{ old('payment_month', now()->format('Y-m')) }}" required
+                                @php
+                                    $bulanNames = [1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                                    $selectedMonth = old('payment_month', now()->format('Y-m'));
+                                    $availableYears = [now()->year, now()->year + 1];
+                                @endphp
+                                <select name="payment_month" required title="Potong Gaji Bulan"
                                     class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                                    @foreach($availableYears as $availableYear)
+                                        <optgroup label="{{ $availableYear }}">
+                                            @for($m = 1; $m <= 12; $m++)
+                                                @php($monthValue = sprintf('%d-%02d', $availableYear, $m))
+                                                <option value="{{ $monthValue }}" {{ $selectedMonth === $monthValue ? 'selected' : '' }}>
+                                                    1 {{ $bulanNames[$m] }} {{ $availableYear }}
+                                                </option>
+                                            @endfor
+                                        </optgroup>
+                                    @endforeach
+                                </select>
                                 <input type="number" name="amount" min="1" max="{{ (float) $loan->remaining_balance }}" step="1" required
                                     placeholder="Nominal" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
                                 <input type="text" name="notes" placeholder="Catatan (opsional)"

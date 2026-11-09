@@ -365,12 +365,12 @@ class AttendanceDailyController extends Controller
 
             foreach ($dailies as $d) {
                 // Hari dengan izin: keterlambatan diabaikan (tanpa potongan terlambat
-                // otomatis). Nominal potong izin ditentukan di menu Manajemen Izin.
+                // otomatis). Nominal potong izin dihitung dari menit izin harian.
                 if ($d->isLateIgnored()) {
                     if ($d->tipe_nominal_izin === 'tambah_gaji') {
                         $nominalIzinTambah += (float) $d->nominal_izin;
                     } elseif ($d->tipe_nominal_izin === 'potong_gaji') {
-                        $nominalIzinPotong += (float) $d->nominal_izin; // fallback bila Manajemen Izin belum diisi
+                        $nominalIzinPotong += (float) $d->nominal_izin;
                     }
                 } else {
                     $totalLateInMinutes += $d->late_check_in_minutes;
@@ -395,13 +395,7 @@ class AttendanceDailyController extends Controller
             $nominalPotonganSetelahIstirahat = $this->lookupPotonganFine($employee, $totalLateBreakInMinutes, 'setelah_istirahat', $potonganMasters);
             $totalNominalTerlambat = $nominalPotonganMasukKerja + $nominalPotonganSetelahIstirahat;
 
-            // Potongan izin: nominal dari menu Manajemen Izin (per periode bulan)
-            $manualPotonganIzin = \App\Models\PermitDeduction::amountFor($employee->id, $year, $month);
-            if ($manualPotonganIzin !== null) {
-                $nominalIzinPotong = round($manualPotonganIzin, 2);
-            }
-
-            // Aturan Jatah Libur & Potongan Masuk (reset tiap tanggal 1 tanpa menghilangkan sisa libur bulan lalu)
+            // Aturan Jatah Libur & Potongan Libur (reset tiap tanggal 1 tanpa menghilangkan sisa libur bulan lalu)
             $quota = $employee->getEffectiveLeaveQuotaForMonth($year, $month);
             $hariPotongMasuk = max(0, $totalLiburDays - $quota);
             $sisaLibur = max(0, $quota - $totalLiburDays);

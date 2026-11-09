@@ -48,17 +48,18 @@ class Permit extends Model
 
     /**
      * Agregasi izin 1 karyawan pada 1 tanggal -> field DailyAttendance.
-     * Tipe potong/tidak potong ditandai meski nominal 0 (nominal diinput
-     * terpisah di menu Manajemen Izin). Net (tambah - potong) jika ada nominal.
+     * potong_gaji / tambah_gaji -> nominal rupiah (potong gaji dihitung dari menit izin);
+     * tidak potong / libur -> nominal 0 (gaji harian tidak terpotong apa pun lamanya,
+     * durasi menit tetap tersimpan di Permit.duration_minutes).
      * ponytail: campuran no_deduction + nominal -> nominal menang, menit diabaikan
      */
     public static function summaryFor($permits): array
     {
         $potong = 0.0;
         $tambah = 0.0;
-        $minutes = 0;
         $hasPotong = false;
         $hasTambahan = false;
+        $hasTidakPotong = false;
 
         foreach ($permits as $permit) {
             if ($permit->type === self::TYPE_SALARY_DEDUCTION) {
@@ -68,7 +69,7 @@ class Permit extends Model
                 $tambah += (float) $permit->nominal;
                 $hasTambahan = true;
             } else {
-                $minutes += (int) $permit->duration_minutes;
+                $hasTidakPotong = true;
             }
         }
 
@@ -85,8 +86,8 @@ class Permit extends Model
         }
 
         return [
-            'tipe' => $minutes > 0 ? 'tidak_potong' : null,
-            'nominal' => $minutes,
+            'tipe' => $hasTidakPotong ? 'tidak_potong' : null,
+            'nominal' => 0,
         ];
     }
 

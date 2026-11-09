@@ -143,9 +143,6 @@
                             <i class="fas fa-money-check-alt w-5"></i><span class="ml-3">Payroll &amp; Slip Gaji</span>
                         </a>
                         @endif
-                        <a href="{{ route('permits.management') }}" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->routeIs('permits.management*') ? 'bg-blue-700 shadow-lg' : '' }}">
-                            <i class="fas fa-file-signature w-5"></i><span class="ml-3">Manajemen Izin</span>
-                        </a>
                     </div>
                 </div>
 

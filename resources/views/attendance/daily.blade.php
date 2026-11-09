@@ -251,7 +251,7 @@
                                 </div>
 
                                 <!-- Modal Kelola Izin -->
-                                <div id="permit-modal-{{ $att->id }}" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/40 p-4" onclick="closePermitModal(event, 'permit-modal-{{ $att->id }}')">
+                                <div id="permit-modal-{{ $att->id }}" data-salary="{{ (float) $emp->salary }}" data-daily-divider="{{ (int) config('payroll_rules.potongan_izin.daily_divider', 30) }}" data-work-minutes="{{ (int) config('payroll_rules.potongan_izin.work_minutes_per_day', 480) }}" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/40 p-4" onclick="closePermitModal(event, 'permit-modal-{{ $att->id }}')">
                                     <div class="w-full max-w-2xl rounded-xl bg-white p-5 text-left shadow-xl" onclick="event.stopPropagation()">
                                         <div class="flex items-center justify-between border-b pb-3">
                                             <div><h3 class="font-semibold text-gray-800">Kelola Izin</h3><p class="text-xs text-gray-500">{{ $emp->name }} · {{ \Carbon\Carbon::parse($dateStr)->format('d/m/Y') }}</p></div>
@@ -260,14 +260,24 @@
                                         <div class="my-4 space-y-2">
                                             @forelse($employeePermits as $permit)
                                                 <div class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs">
-                                                    <span>{{ ucfirst(str_replace('_', ' ', $permit->category)) }} · {{ $permit->type === 'libur' ? 'Libur (' . ($permit->leave_duration === 'setengah_hari' ? 'Setengah hari' : '1 hari') . ')' : ($permit->type === 'no_deduction' ? 'Tidak potong · ' . $permit->duration_minutes . ' menit' : 'Potong gaji' . ((float) $permit->nominal > 0 ? ' · Rp ' . number_format($permit->nominal, 0, ',', '.') : '')) }}</span>
+                                                    <span>
+                                                        {{ ucfirst(str_replace('_', ' ', $permit->category)) }} ·
+                                                        @if($permit->type === 'libur')
+                                                            Libur ({{ $permit->leave_duration === 'setengah_hari' ? 'Setengah hari' : '1 hari' }})
+                                                        @elseif($permit->type === 'no_deduction')
+                                                            Tidak potong · {{ $permit->duration_minutes }} menit
+                                                        @else
+                                                            Potong gaji · {{ $permit->duration_minutes }} menit{{ (float) $permit->nominal > 0 ? ' · Rp ' . number_format($permit->nominal, 0, ',', '.') : '' }}
+                                                        @endif
+                                                    </span>
                                                     <span class="text-gray-500">{{ $permit->reason }}</span>
                                                 </div>
                                             @empty
                                                 <p class="text-xs text-gray-500">Belum ada izin pada tanggal ini.</p>
                                             @endforelse
                                             <p class="rounded border border-blue-100 bg-blue-50 p-2 text-[11px] text-blue-800">
-                                                <i class="fas fa-info-circle mr-1"></i>Popup ini hanya menandai tipe izin (<strong>potong gaji</strong> / <strong>tidak potong</strong>). Nominal potongan izin diinput lewat menu <strong>HR &amp; Keuangan &rarr; Manajemen Izin</strong> per bulan sebelum penggajian.
+                                                <i class="fas fa-info-circle mr-1"></i><strong>Potong gaji</strong>: isi berapa menit (mis. <strong>120 menit = 2 jam</strong>) &rarr; gaji harian otomatis terpotong proporsional.
+                                                <strong>Tidak potong</strong>: gaji harian tetap utuh meski jam kerja anomali.
                                             </p>
                                         </div>
                                         <form action="{{ route('permits.store') }}" method="POST" class="space-y-3 border-t pt-4">
@@ -353,8 +363,10 @@
                     <option value="setengah_hari">Setengah Hari (Kurangi 0.5 kuota libur)</option>
                 </select>
             </label>
-            <label class="hidden text-xs font-medium text-gray-700" data-permit-minutes>Menit izin
-                <input type="number" name="__MINUTES__" min="1" placeholder="Masukkan jumlah menit" class="mt-1 w-full rounded border-gray-300 text-sm">
+            <label class="hidden text-xs font-medium text-gray-700" data-permit-minutes>Menit potong gaji
+                <input type="number" name="__MINUTES__" min="1" placeholder="Contoh: 120 (2 jam)" oninput="updateMinutesPreview(this)" class="mt-1 w-full rounded border-gray-300 text-sm">
+                <span class="mt-1 block text-[11px] font-normal text-gray-500">Gaji harian terpotong proporsional: menit &divide; {{ (int) config('payroll_rules.potongan_izin.work_minutes_per_day', 480) }} menit kerja (8 jam).</span>
+                <span data-minutes-preview class="mt-1 hidden text-[11px] font-bold text-red-600"></span>
             </label>
             <input type="text" name="__REASON__" placeholder="Alasan izin / keterangan" required class="rounded border-gray-300 text-sm md:col-span-2">
         </div>
@@ -442,14 +454,49 @@
         const minutes = row.querySelector('[data-permit-minutes]');
 
         const isLibur = select.value === 'libur';
-        const isNoDeduction = select.value === 'no_deduction';
+        // Field menit hanya untuk potong gaji; "tidak potong" tidak memotong gaji harian.
+        const isSalaryDeduction = select.value === 'salary_deduction';
 
         if (leaveDuration) leaveDuration.classList.toggle('hidden', !isLibur);
         if (minutes) {
-            minutes.classList.toggle('hidden', !isNoDeduction);
+            minutes.classList.toggle('hidden', !isSalaryDeduction);
             const minInput = minutes.querySelector('input');
-            if (minInput) minInput.required = isNoDeduction;
+            if (minInput) {
+                minInput.required = isSalaryDeduction;
+                if (!isSalaryDeduction) minInput.value = '';
+                updateMinutesPreview(minInput);
+            }
         }
+    }
+
+    /**
+     * Pratinjau potongan: (Gaji Pokok / divider) * (menit / menit kerja per hari).
+     */
+    function updateMinutesPreview(input) {
+        const row = input.closest('[data-permit-row]');
+        if (!row) return;
+        const preview = row.querySelector('[data-minutes-preview]');
+        if (!preview) return;
+
+        const modal = input.closest('[id^="permit-modal-"]');
+        const salary = parseFloat((modal && modal.dataset.salary) || '0');
+        const divider = parseFloat((modal && modal.dataset.dailyDivider) || '30');
+        const workMinutes = parseFloat((modal && modal.dataset.workMinutes) || '480');
+        const minutes = parseInt(input.value || '0', 10);
+
+        if (!salary || !minutes || minutes <= 0) {
+            preview.classList.add('hidden');
+            preview.textContent = '';
+            return;
+        }
+
+        const amount = Math.round((salary / divider) * (minutes / workMinutes));
+        const hours = Math.floor(minutes / 60);
+        const rest = minutes % 60;
+        const duration = (hours ? hours + ' jam' : '') + (hours && rest ? ' ' : '') + (rest ? rest + ' menit' : '');
+
+        preview.textContent = 'Potongan gaji harian ' + duration + ' = Rp ' + amount.toLocaleString('id-ID');
+        preview.classList.remove('hidden');
     }
 
     function closePermitModal(event, id) {

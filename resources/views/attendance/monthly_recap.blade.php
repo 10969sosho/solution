@@ -87,8 +87,8 @@
                     <th class="px-3 py-3 text-right">Pot. Telat Istirahat</th>
                     <th class="px-3 py-3 text-right">Nominal Izin</th>
                     <th class="px-3 py-3 text-center">Total Libur</th>
-                    <th class="px-3 py-3 text-center">Hari Pot. Masuk</th>
-                    <th class="px-3 py-3 text-right">Nominal Pot. Masuk</th>
+                    <th class="px-3 py-3 text-center">Pot. Hari Libur</th>
+                    <th class="px-3 py-3 text-right">Nominal Pot. Libur</th>
                     <th class="px-3 py-3 text-center">Total Lembur</th>
                     <th class="px-3 py-3 text-right">Nominal Lembur</th>
                     <th class="px-3 py-3 text-right">Bonus Libur</th>
@@ -150,12 +150,12 @@
                             {{ $item['total_libur_days'] }} hr
                         </td>
 
-                        <!-- Hari Potong Masuk -->
+                        <!-- Pot. Hari Libur (Kelebihan dari kuota) -->
                         <td class="px-3 py-3 text-center font-bold {{ $item['hari_potong_masuk'] > 0 ? 'text-red-600' : 'text-gray-400' }}">
                             {{ $item['hari_potong_masuk'] }} hr
                         </td>
 
-                        <!-- Nominal Potong Masuk -->
+                        <!-- Nominal Pot. Libur -->
                         <td class="px-3 py-3 text-right font-mono {{ $item['nominal_potong_masuk'] > 0 ? 'text-red-600 font-semibold' : 'text-gray-400' }}">
                             {{ $canSeeMoney ? 'Rp ' . number_format($item['nominal_potong_masuk'], 0, ',', '.') : '••••••' }}
                         </td>

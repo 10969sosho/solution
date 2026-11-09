@@ -17,7 +17,7 @@ class PayrollService
      * Hitung rincian gaji satu karyawan untuk periode tertentu sesuai Briefing.
      * Formula:
      * GRAND TOTAL = GAJI POKOK - POTONGAN TERLAMBAT - IZIN POTONG GAJI + IZIN TAMBAH GAJI
-     *               - PINJAMAN - POTONGAN MASUK + BONUSAN + UANG JAGA MALAM + NOMINAL LEMBUR
+     *               - PINJAMAN - POTONGAN LIBUR + BONUSAN + UANG JAGA MALAM + NOMINAL LEMBUR
      */
     public function calculate(Employee $employee, int $year, int $month): array
     {
@@ -51,11 +51,11 @@ class PayrollService
                 }
 
                 // Aturan izin: hari dengan izin (potong/tidak potong) TIDAK dikenakan
-                // potongan terlambat otomatis. Nominal potong izin ditentukan manual
-                // lewat menu Manajemen Izin (PermitDeduction) sebelum penggajian.
+                // potongan terlambat otomatis. Nominal potong izin dihitung dari menit
+                // izin (popup Kelola Izin) dan tersimpan pada nominal_izin harian.
                 if ($d->isLateIgnored()) {
                     if ($d->tipe_nominal_izin === 'potong_gaji') {
-                        $izinPotongGaji += (float) $d->nominal_izin; // fallback bila Manajemen Izin belum diisi
+                        $izinPotongGaji += (float) $d->nominal_izin;
                     } elseif ($d->tipe_nominal_izin === 'tambah_gaji') {
                         $izinTambahGaji += (float) $d->nominal_izin;
                     }
@@ -85,7 +85,7 @@ class PayrollService
             $potonganTerlambatIstirahat = $this->calculateLateFine($employee, $totalLateBreakInMinutes, 'setelah_istirahat');
             $totalPotonganTerlambat = round($potonganTerlambatMasuk + $potonganTerlambatIstirahat, 2);
 
-            // 3. Hitung Jatah Libur & Potongan Masuk (reset tiap tanggal 1 tanpa menghilangkan sisa libur bulan lalu)
+            // 3. Hitung Jatah Libur & Potongan Libur (reset tiap tanggal 1 tanpa menghilangkan sisa libur bulan lalu)
             $quota = $employee->getEffectiveLeaveQuotaForMonth($year, $month);
             $hariPotongMasuk = max(0, $totalHariLibur - $quota);
             $sisaLibur = max(0, $quota - $totalHariLibur);
@@ -107,16 +107,9 @@ class PayrollService
             // 7. Pinjaman Karyawan (dari transaksi Potong Pinjaman)
             $pinjamanDeduction = $this->calculateLoanDeduction($employee, $year, $month);
 
-            // 8. Potongan Izin: nominal dari menu Manajemen Izin (per periode bulan).
-            //    Jika belum diinput, fallback ke akumulasi nominal izin harian.
-            $manualPotonganIzin = \App\Models\PermitDeduction::amountFor($employee->id, $year, $month);
-            if ($manualPotonganIzin !== null) {
-                $izinPotongGaji = round($manualPotonganIzin, 2);
-            }
-
-            // 9. Rumus Grand Total Gaji (Section 14 briefing):
+            // 8. Rumus Grand Total Gaji (Section 14 briefing):
             // GRAND TOTAL = GAJI POKOK - POTONGAN TERLAMBAT - IZIN POTONG GAJI + IZIN TAMBAH GAJI
-            //               - PINJAMAN - POTONGAN MASUK + BONUSAN + UANG JAGA MALAM + NOMINAL LEMBUR
+            //               - PINJAMAN - POTONGAN LIBUR + BONUSAN + UANG JAGA MALAM + NOMINAL LEMBUR
             $grandTotal = round(
                 $baseSalary
                 - $totalPotonganTerlambat
@@ -173,9 +166,8 @@ class PayrollService
             $potonganTerlambatMasuk = $lateDeduction;
             $potonganTerlambatIstirahat = 0;
 
-            // Potongan izin dari menu Manajemen Izin (konsisten dengan jalur DailyAttendance)
-            $manualPotonganIzin = \App\Models\PermitDeduction::amountFor($employee->id, $year, $month);
-            $izinPotongGaji = round($manualPotonganIzin ?? 0, 2);
+            // Potongan izin: total izin potong gaji (nominal hasil hitungan menit)
+            $izinPotongGaji = round($permits->where('type', Permit::TYPE_SALARY_DEDUCTION)->sum('nominal'), 2);
 
             $totalDeduction = round($lateDeduction + $izinPotongGaji + $pinjamanDeduction + $potonganMasuk, 2);
             $totalIncentive = round($bonusLibur + $uangJagaMalam, 2);
@@ -209,7 +201,7 @@ class PayrollService
             'potongan_masuk' => $potonganMasuk,
             'pinjaman_deduction' => $pinjamanDeduction,
             'grand_total' => $grandTotal,
-            'payment_method' => $employee->payment_method ?? 'transfer',
+            'payment_method' => $employee->effectivePaymentMethod(),
             'breakdown' => [
                 'total_late_minutes' => $totalLateInMinutes,
                 'total_late_break_in_minutes' => $totalLateBreakInMinutes,
@@ -420,7 +412,7 @@ class PayrollService
      * Hitung potongan terlambat dengan aturan izin:
      * - Hari TANPA izin → potongan otomatis sesuai master PotonganTerlambat.
      * - Hari DENGAN izin (terlambat/anomali) → TIDAK dikenakan potongan terlambat
-     *   otomatis; potongannya ditentukan manual lewat menu Manajemen Izin.
+     *   otomatis; gaji harian dipotong sesuai menit izin potong gaji.
      */
     private function calculateLateDeductionWithPermits(Employee $employee, array $attendance, $permits): float
     {
@@ -450,7 +442,7 @@ class PayrollService
 
     /**
      * Hitung menit terlambat aktual. Hari yang memiliki izin dikecualikan
-     * dari akumulasi keterlambatan (potongan ditentukan via Manajemen Izin).
+     * dari akumulasi keterlambatan (gaji harian dipotong dari menit izin).
      */
     private function calculateActualLateMinutes(array $attendance, $permits): array
     {

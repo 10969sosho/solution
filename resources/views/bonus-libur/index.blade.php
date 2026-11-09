@@ -26,7 +26,7 @@
         <h3 class="text-lg font-semibold"><i class="fas fa-gift mr-2"></i>Bonus Libur</h3>
         <p class="text-sm text-emerald-100 mt-1">
             Karyawan mendapat bonus dari jatah libur yang tidak diambil pada bulan tersebut.
-            Jatah libur per karyawan diatur di Data Karyawan, sedangkan libur/cuti yang diambil dicatat di Manajemen Izin.
+            Jatah libur per karyawan diatur di Data Karyawan, sedangkan libur/cuti yang diambil dicatat lewat Kelola Izin di Absen Daily.
         </p>
     </div>
 

@@ -64,8 +64,6 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::get('/permits', [PermitController::class, 'index'])->name('permits.index');
-    Route::get('/permits/management', [PermitController::class, 'management'])->name('permits.management');
-    Route::post('/permits/management', [PermitController::class, 'storeManagement'])->name('permits.management.store');
     Route::get('/permits/create', [PermitController::class, 'create'])->name('permits.create');
     Route::post('/permits', [PermitController::class, 'store'])->name('permits.store');
     Route::post('/permits/bulk', [PermitController::class, 'storeBulk'])->name('permits.storeBulk');

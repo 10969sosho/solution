@@ -18,7 +18,7 @@ class PayrollController extends Controller
         $year = (int) $request->input('year', now()->year);
         $month = (int) $request->input('month', now()->month);
 
-        $payrolls = Payroll::with(['employee.golongan', 'employee.jabatan', 'employee.loans.payments'])
+        $payrolls = Payroll::with(['employee.golongan', 'employee.jabatan', 'employee.lokasi', 'employee.loans.payments'])
             ->where('period_year', $year)
             ->where('period_month', $month)
             ->orderBy('employee_id')
@@ -34,7 +34,7 @@ class PayrollController extends Controller
 
     public function show(Payroll $payroll)
     {
-        $payroll->load(['employee.golongan', 'employee.jabatan', 'employee.loans.payments']);
+        $payroll->load(['employee.golongan', 'employee.jabatan', 'employee.lokasi', 'employee.loans.payments']);
 
         if (! auth()->user()->isSuperAdmin() && $payroll->employee?->isMandorOrAdmin()) {
             abort(403, 'Anda tidak memiliki hak akses untuk melihat atau mencetak slip gaji golongan Mandor dan Admin.');

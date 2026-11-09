@@ -156,9 +156,9 @@ class RevisiManajemenIzinTest extends TestCase
 
     /**
      * 2b. Terlambat/anomali TETAPI ADA IZIN → TANPA potongan terlambat otomatis;
-     *     potongan ditentukan manual via Manajemen Izin (PermitDeduction).
+     *     gaji harian dipotong sesuai MENIT izin potong gaji (popup Absen Daily).
      */
-    public function test_late_with_permit_has_no_auto_fine_and_uses_manajemen_izin(): void
+    public function test_late_with_permit_has_no_auto_fine_and_uses_permit_minutes(): void
     {
         $golongan = $this->makeGolonganWithWorkSetting();
         $this->employee->update(['golongan_id' => $golongan->id]);
@@ -171,20 +171,6 @@ class RevisiManajemenIzinTest extends TestCase
             'amount' => 50000,
         ]);
 
-        // Izin terlambat (potong gaji, tanpa nominal di daily)
-        Permit::create([
-            'employee_id' => $this->employee->id,
-            'category' => 'terlambat',
-            'permit_date' => '2026-08-10',
-            'type' => Permit::TYPE_SALARY_DEDUCTION,
-            'start_time' => '08:00',
-            'end_time' => '08:15',
-            'duration_minutes' => 15,
-            'nominal' => 0,
-            'reason' => 'Telat macet',
-            'status' => 'approved',
-        ]);
-
         DailyAttendance::create([
             'employee_id' => $this->employee->id,
             'date' => '2026-08-10',
@@ -192,114 +178,79 @@ class RevisiManajemenIzinTest extends TestCase
             'check_out' => '17:00:00',
             'late_check_in_minutes' => 15,
             'is_anomaly' => true,
-            'keterangan' => 'izin',
-            'tipe_nominal_izin' => 'potong_gaji',
-            'nominal_izin' => 0,
             'is_fixed' => true,
         ]);
 
-        // Nominal potongan izin diinput lewat Manajemen Izin
-        PermitDeduction::create([
+        // Kelola Izin dari Absen Daily: potong gaji 120 menit (2 jam)
+        $this->post(route('permits.store'), [
+            'source' => 'attendance_daily',
             'employee_id' => $this->employee->id,
-            'period_year' => 2026,
-            'period_month' => 8,
-            'amount' => 75000,
+            'permit_date' => '2026-08-10',
+            'permits' => [
+                [
+                    'category' => 'terlambat',
+                    'type' => Permit::TYPE_SALARY_DEDUCTION,
+                    'permit_minutes' => 120,
+                    'start_time' => '08:00',
+                    'end_time' => '08:15',
+                    'reason' => 'Telat macet',
+                ],
+            ],
         ]);
+
+        $record = DailyAttendance::where('employee_id', $this->employee->id)
+            ->where('date', '2026-08-10')
+            ->first();
+        $this->assertSame('izin', $record->keterangan);
+        $this->assertTrue($record->isLateIgnored());
+        // Gaji 3.000.000 / 30 = 100.000/hari; 120 menit dari 480 menit kerja -> Rp 25.000
+        $this->assertEqualsWithDelta(25000.0, (float) $record->nominal_izin, 0.01);
 
         $payroll = app(PayrollService::class)->generate($this->employee, 2026, 8);
 
-        // Tidak ada potongan terlambat otomatis; potongan izin 75.000 dari Manajemen Izin
+        // Tidak ada potongan terlambat otomatis; potongan izin dari menit di atas
         $this->assertSame(0.0, (float) $payroll->late_deduction);
         $this->assertSame(0.0, (float) $payroll->total_potongan_terlambat);
-        $this->assertSame(75000.0, (float) $payroll->izin_potong_gaji);
+        $this->assertEqualsWithDelta(25000.0, (float) $payroll->izin_potong_gaji, 0.01);
     }
 
     /**
-     * 3. Menu Manajemen Izin: halaman, simpan nominal, dan rekap hitungan izin.
+     * 3. Menu Manajemen Izin dihapus total: route, halaman, dan item sidebar.
      */
-    public function test_manajemen_izin_page_and_store_nominal(): void
+    public function test_menu_manajemen_izin_is_removed(): void
     {
-        Permit::create([
-            'employee_id' => $this->employee->id,
-            'category' => 'terlambat',
-            'permit_date' => '2026-10-05',
-            'type' => Permit::TYPE_SALARY_DEDUCTION,
-            'start_time' => '08:00',
-            'end_time' => '08:30',
-            'duration_minutes' => 30,
-            'nominal' => 0,
-            'reason' => 'Potong 1',
-            'status' => 'approved',
-        ]);
-        Permit::create([
-            'employee_id' => $this->employee->id,
-            'category' => 'terlambat',
-            'permit_date' => '2026-10-06',
-            'type' => Permit::TYPE_SALARY_DEDUCTION,
-            'start_time' => '08:00',
-            'end_time' => '08:30',
-            'duration_minutes' => 30,
-            'nominal' => 0,
-            'reason' => 'Potong 2',
-            'status' => 'approved',
-        ]);
-        Permit::create([
-            'employee_id' => $this->employee->id,
-            'category' => 'terlambat',
-            'permit_date' => '2026-10-07',
-            'type' => Permit::TYPE_NO_DEDUCTION,
-            'start_time' => '08:00',
-            'end_time' => '08:10',
-            'duration_minutes' => 10,
-            'nominal' => 0,
-            'reason' => 'Tidak potong 1',
-            'status' => 'approved',
-        ]);
+        // Route & namanya sudah dihapus
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('permits.management'));
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('permits.management.store'));
 
-        $page = $this->get(route('permits.management', ['year' => 2026, 'month' => 10]));
-        $page->assertOk();
-        $page->assertSee('Manajemen Izin');
-        $page->assertSee('Karyawan Revisi');
-        $page->assertSee('2 hari'); // izin potong gaji
-        $page->assertSee('1 hari'); // izin tidak potong
-
-        $this->post(route('permits.management.store'), [
+        // URI lama jatuh ke rute DELETE permits/{permit} -> 405, halaman tidak ada
+        $this->get('/permits/management')->assertStatus(405);
+        $this->post('/permits/management', [
             'employee_id' => $this->employee->id,
             'year' => 2026,
             'month' => 10,
             'amount' => 120000,
-        ])->assertRedirect(route('permits.management', ['year' => 2026, 'month' => 10]));
+        ])->assertStatus(405);
 
-        $this->assertDatabaseHas('permit_deductions', [
-            'employee_id' => $this->employee->id,
-            'period_year' => 2026,
-            'period_month' => 10,
-            'amount' => 120000,
-        ]);
+        $this->assertSame(0, PermitDeduction::count());
 
-        // Upsert: simpan lagi mengubah nominal yang sama
-        $this->post(route('permits.management.store'), [
-            'employee_id' => $this->employee->id,
-            'year' => 2026,
-            'month' => 10,
-            'amount' => 90000,
-        ]);
-
-        $this->assertSame(1, PermitDeduction::where('employee_id', $this->employee->id)->count());
-        $this->assertSame(90000.0, (float) PermitDeduction::amountFor($this->employee->id, 2026, 10));
+        $sidebar = $this->get(route('dashboard'));
+        $sidebar->assertOk();
+        $sidebar->assertDontSee('Manajemen Izin');
     }
 
     /**
-     * 4. Rekap Bulanan menarik nominal potongan izin dari Manajemen Izin.
+     * 4. Rekap Bulanan menarik nominal potongan izin dari Absen Daily
+     *    (data lama di tabel permit_deductions tidak dipakai lagi).
      */
-    public function test_monthly_recap_shows_potongan_izin_from_manajemen(): void
+    public function test_monthly_recap_shows_potongan_izin_from_daily(): void
     {
         DailyAttendance::create([
             'employee_id' => $this->employee->id,
             'date' => '2026-10-05',
             'keterangan' => 'izin',
             'tipe_nominal_izin' => 'potong_gaji',
-            'nominal_izin' => 0,
+            'nominal_izin' => 80000,
             'is_fixed' => true,
         ]);
 
@@ -307,19 +258,20 @@ class RevisiManajemenIzinTest extends TestCase
             'employee_id' => $this->employee->id,
             'period_year' => 2026,
             'period_month' => 10,
-            'amount' => 80000,
+            'amount' => 999999,
         ]);
 
         $response = $this->get(route('attendance.monthly-recap', ['year' => 2026, 'month' => 10]));
         $response->assertOk();
         $response->assertSee('Karyawan Revisi');
         $response->assertSee('-Rp 80.000');
+        $response->assertDontSee('999.999');
     }
 
     /**
-     * 5. Payroll memakai nominal Manajemen Izin bila ada (fallback nominal harian bila tidak).
+     * 5. Payroll memakai nominal izin harian; data Manajemen Izin lama diabaikan.
      */
-    public function test_payroll_prefers_manajemen_izin_over_daily_nominal(): void
+    public function test_payroll_uses_daily_izin_nominal_only(): void
     {
         DailyAttendance::create([
             'employee_id' => $this->employee->id,
@@ -330,11 +282,6 @@ class RevisiManajemenIzinTest extends TestCase
             'is_fixed' => true,
         ]);
 
-        // Belum ada Manajemen Izin -> fallback nominal harian
-        $payroll = app(PayrollService::class)->generate($this->employee, 2026, 8);
-        $this->assertSame(1000.0, (float) $payroll->izin_potong_gaji);
-
-        // Setelah diinput di Manajemen Izin -> nominal Manajemen Izin menang
         PermitDeduction::create([
             'employee_id' => $this->employee->id,
             'period_year' => 2026,
@@ -343,7 +290,8 @@ class RevisiManajemenIzinTest extends TestCase
         ]);
 
         $payroll = app(PayrollService::class)->generate($this->employee, 2026, 8);
-        $this->assertSame(80000.0, (float) $payroll->izin_potong_gaji);
+
+        $this->assertSame(1000.0, (float) $payroll->izin_potong_gaji);
     }
 
     /**
@@ -390,7 +338,7 @@ class RevisiManajemenIzinTest extends TestCase
         $response->assertSee('Jam Kerja Khusus');
         $response->assertSee('Jam Kerja Musiman');
         $response->assertSee('Setting Jam Kerja');
-        $response->assertSee('Manajemen Izin');
+        $response->assertDontSee('Manajemen Izin');
         $response->assertSee('Pinjaman / Kasbon');
         $response->assertSee('Payroll &amp; Slip Gaji', false);
     }

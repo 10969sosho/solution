@@ -47,7 +47,7 @@
 
     <!-- Rumus Banner (Briefing Section 14) -->
     <div class="bg-blue-50 border border-blue-200 rounded-xl p-3.5 mb-6 text-xs text-blue-900 leading-relaxed font-mono">
-        <strong>Rumus Grand Total:</strong> Gaji Pokok - Pot. Terlambat - Izin Potong Gaji + Izin Tambah Gaji - Pinjaman - Pot. Masuk + Bonus Libur + Uang Jaga Malam + Nominal Lembur
+        <strong>Rumus Grand Total:</strong> Gaji Pokok - Pot. Terlambat - Izin Potong Gaji + Izin Tambah Gaji - Pinjaman - Pot. Libur + Bonus Libur + Uang Jaga Malam + Nominal Lembur
     </div>
 
     <!-- Tabel Penggajian Lengkap -->
@@ -56,7 +56,9 @@
             <thead class="bg-gray-100 text-gray-700 font-semibold uppercase">
                 <tr>
                     <th class="px-3 py-3 text-left">Nama Karyawan</th>
-                    <th class="px-2 py-3 text-center">Izin</th>
+                    <th class="px-3 py-3 text-left">Jabatan</th>
+                    <th class="px-3 py-3 text-left">Lokasi</th>
+                    <th class="px-3 py-3 text-center">Izin</th>
                     <th class="px-3 py-3 text-right">Gaji Pokok</th>
                     <th class="px-3 py-3 text-right">Pot. Telat</th>
                     <th class="px-2 py-3 text-right">Izin (+/-)</th>
@@ -64,10 +66,11 @@
                     <th class="px-3 py-3 text-right">Nom. Lembur</th>
                     <th class="px-3 py-3 text-right">Jaga Malam</th>
                     <th class="px-3 py-3 text-right">Bonus Libur</th>
-                    <th class="px-3 py-3 text-right">Pot. Masuk</th>
+                    <th class="px-3 py-3 text-right">Pot. Libur</th>
                     <th class="px-4 py-3 text-center">Pot. Pinjaman</th>
                     <th class="px-3 py-3 text-right">Sisa Pinjaman</th>
                     <th class="px-4 py-3 text-right font-bold text-gray-900">Grand Total</th>
+                    <th class="px-3 py-3 text-center">No. Rekening</th>
                     <th class="px-2 py-3 text-center">Metode</th>
                     <th class="px-3 py-3 text-center">Aksi</th>
                 </tr>
@@ -79,6 +82,7 @@
                         $isMandorAdmin = $emp?->isMandorOrAdmin();
                         $canSee = auth()->user()->isSuperAdmin() || !$isMandorAdmin;
                         $sisaPinjaman = $emp?->getTotalRemainingLoan() ?? 0;
+                        $paymentMethod = $emp ? $emp->effectivePaymentMethod() : strtolower((string) $payroll->payment_method);
                     @endphp
                     <tr class="hover:bg-blue-50/50 transition">
                         <td class="px-3 py-3 font-medium text-gray-900">
@@ -89,6 +93,16 @@
                                     <span class="ml-1 text-[9px] px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 font-semibold">Mandor/Admin</span>
                                 @endif
                             </div>
+                        </td>
+
+                        <!-- Jabatan -->
+                        <td class="px-3 py-3 text-gray-700">
+                            {{ $emp->jabatan?->name ?? $emp->position ?? '-' }}
+                        </td>
+
+                        <!-- Lokasi -->
+                        <td class="px-3 py-3 text-gray-700">
+                            {{ $emp->lokasi?->name ?? $emp->location ?? '-' }}
                         </td>
 
                         <!-- Total Izin -->
@@ -141,7 +155,7 @@
                             {{ $canSee ? '+Rp ' . number_format($payroll->bonus_libur, 0, ',', '.') : '••••••' }}
                         </td>
 
-                        <!-- Pot. Masuk (Kelebihan Libur) -->
+                        <!-- Pot. Libur (Kelebihan Libur) -->
                         <td class="px-3 py-3 text-right font-mono text-amber-700">
                             {{ $canSee ? '-Rp ' . number_format($payroll->potongan_masuk, 0, ',', '.') : '••••••' }}
                         </td>
@@ -161,9 +175,14 @@
                             {{ $canSee ? 'Rp ' . number_format($payroll->grand_total, 0, ',', '.') : '••••••' }}
                         </td>
 
-                        <!-- Metode Pembayaran -->
+                        <!-- No. Rekening (jika ada) -->
+                        <td class="px-3 py-3 text-center font-mono {{ $emp->account_number ? 'text-gray-700' : 'text-gray-400' }}">
+                            {{ $emp->account_number ?: '-' }}
+                        </td>
+
+                        <!-- Metode Pembayaran (tanpa rekening -> TUNAI) -->
                         <td class="px-2 py-3 text-center">
-                            @if(strtolower($payroll->payment_method) === 'cash')
+                            @if($paymentMethod === 'cash')
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">TUNAI</span>
                             @else
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">TRANSFER</span>
@@ -193,7 +212,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="15" class="px-4 py-8 text-center text-gray-400">
+                        <td colspan="18" class="px-4 py-8 text-center text-gray-400">
                             Belum ada payroll untuk periode ini. Klik tombol <strong>Hitung Ulang Payroll</strong> di atas.
                         </td>
                     </tr>

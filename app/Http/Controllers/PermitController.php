@@ -80,17 +80,22 @@ class PermitController extends Controller
             'deduction_minutes' => 'nullable|integer|min:0',
             'late_minutes' => 'nullable|integer|min:1',
             'late_fine_amount' => 'nullable|numeric|min:0',
-            'nominal' => 'nullable|numeric|min:0|required_if:type,addition,salary_deduction',
-            'permit_minutes' => 'nullable|integer|min:1|required_if:type,no_deduction',
+            'nominal' => 'nullable|numeric|min:0|required_if:type,addition',
+            'permit_minutes' => 'nullable|integer|min:1|required_if:type,salary_deduction',
         ]);
 
         $duration = $this->durationInMinutes($validated['start_time'], $validated['end_time']);
-        $validated['duration_minutes'] = ($validated['type'] ?? null) === 'no_deduction'
-            ? (int) $validated['permit_minutes']
-            : $duration;
-        unset($validated['permit_minutes']);
-        $validated['nominal'] = $validated['nominal'] ?? 0;
         $validated['type'] = $validated['type'] ?? $this->determineType($duration, $validated['deduction_type'] ?? 'no_deduction');
+        $minutes = $this->resolveDeductionMinutes($validated, $duration);
+        $validated['duration_minutes'] = $validated['type'] === Permit::TYPE_LIBUR ? $duration : $minutes;
+        unset($validated['permit_minutes']);
+
+        // Potong gaji dihitung dari MENIT: gaji harian * (menit / menit kerja per hari).
+        // Nominal eksplisit tetap menang (dipakai impor/laporan lama).
+        $validated['nominal'] = $validated['nominal']
+            ?? ($validated['type'] === Permit::TYPE_SALARY_DEDUCTION
+                ? $this->deductionAmountFromMinutes($validated['employee_id'], $minutes)
+                : 0);
         $validated['status'] = 'approved';
 
         Permit::create($validated);
@@ -126,26 +131,39 @@ class PermitController extends Controller
         if (is_array($rows)) {
             foreach (array_keys($rows) as $i) {
                 $type = $rows[$i]['type'] ?? null;
-                // Nominal TIDAK wajib: popup Absen Daily hanya menandai tipe potong/tidak potong.
-                // Nominal potong gaji diinput terpisah di menu Manajemen Izin.
+                // Potong gaji WAJIB menyebut menit: nominal dihitung otomatis dari menit
+                // (gaji harian * menit / menit kerja per hari). Izin tidak potong tidak
+                // mengurangi gaji harian berapa pun lamanya.
                 $rules["permits.$i.nominal"] = ['nullable', 'numeric', 'min:0'];
                 $rules["permits.$i.permit_minutes"] = [
                     'nullable',
                     'integer',
                     'min:1',
-                    Rule::requiredIf($type === 'no_deduction'),
+                    Rule::requiredIf($type === 'salary_deduction'),
                 ];
             }
         }
 
         $validated = $request->validate($rules);
+        $employee = Employee::find((int) $validated['employee_id']);
 
         $count = 0;
-        DB::transaction(function () use ($validated, &$count) {
+        DB::transaction(function () use ($validated, $employee, &$count) {
             foreach ($validated['permits'] as $row) {
                 $startTime = $row['start_time'] ?? '08:00';
                 $endTime = $row['end_time'] ?? '17:00';
                 $duration = $this->durationInMinutes($startTime, $endTime);
+                $isLibur = $row['type'] === Permit::TYPE_LIBUR;
+                $minutes = $this->resolveDeductionMinutes($row, $duration);
+
+                if (array_key_exists('nominal', $row) && $row['nominal'] !== null) {
+                    $nominal = (float) $row['nominal'];
+                } elseif ($row['type'] === Permit::TYPE_SALARY_DEDUCTION) {
+                    $nominal = $this->deductionAmountFromMinutes($employee, $minutes);
+                } else {
+                    $nominal = 0;
+                }
+
                 Permit::create([
                     'employee_id' => $validated['employee_id'],
                     'permit_date' => $validated['permit_date'],
@@ -154,10 +172,8 @@ class PermitController extends Controller
                     'leave_duration' => $row['leave_duration'] ?? null,
                     'start_time' => $startTime,
                     'end_time' => $endTime,
-                    'duration_minutes' => $row['type'] === 'no_deduction'
-                        ? (int) ($row['permit_minutes'] ?? $duration)
-                        : $duration,
-                    'nominal' => (float) ($row['nominal'] ?? 0),
+                    'duration_minutes' => $isLibur ? $duration : $minutes,
+                    'nominal' => round($nominal, 2),
                     'reason' => $row['reason'],
                     'status' => 'approved',
                 ]);
@@ -240,71 +256,44 @@ class PermitController extends Controller
     }
 
     /**
-     * MANAJEMEN IZIN: rekap izin potong / tidak potong per karyawan per bulan
-     * + input nominal potongan izin yang ditarik ke Rekap Bulanan & Penggajian.
+     * Nominal potongan izin dari durasi menit:
+     * gaji harian (Gaji Pokok / daily_divider) * (menit / menit kerja per hari).
+     * Contoh: 120 menit (2 jam) pada hari kerja 480 menit -> 1/4 gaji harian.
      */
-    public function management(Request $request)
+    private function deductionAmountFromMinutes($employee, int $minutes): float
     {
-        $year = (int) $request->input('year', now()->year);
-        $month = (int) $request->input('month', now()->month);
+        if (! $employee instanceof Employee) {
+            $employee = Employee::find((int) $employee);
+        }
 
-        $start = Carbon::create($year, $month, 1)->startOfMonth();
-        $end = $start->copy()->endOfMonth();
+        if (! $employee || (float) $employee->salary <= 0 || $minutes <= 0) {
+            return 0;
+        }
 
-        $employees = Employee::query()
-            ->where('status', 'active')
-            ->with(['golongan', 'jabatan'])
-            ->orderBy('name')
-            ->get();
+        $dailyDivider = max(1, (int) config('payroll_rules.potongan_izin.daily_divider', 30));
+        $workMinutesPerDay = max(1, (int) config('payroll_rules.potongan_izin.work_minutes_per_day', 480));
+        $dailyRate = (float) $employee->salary / $dailyDivider;
 
-        $permits = Permit::whereBetween('permit_date', [$start->toDateString(), $end->toDateString()])
-            ->where('status', 'approved')
-            ->get()
-            ->groupBy('employee_id');
-
-        $deductions = \App\Models\PermitDeduction::where('period_year', $year)
-            ->where('period_month', $month)
-            ->get()
-            ->keyBy('employee_id');
-
-        $rows = $employees->map(function ($employee) use ($permits, $deductions) {
-            $mine = $permits->get($employee->id, collect());
-
-            return [
-                'employee' => $employee,
-                'potong_days' => $mine->where('type', Permit::TYPE_SALARY_DEDUCTION)->unique('permit_date')->count(),
-                'tidak_potong_days' => $mine->where('type', Permit::TYPE_NO_DEDUCTION)->unique('permit_date')->count(),
-                'deduction' => $deductions->get($employee->id),
-            ];
-        });
-
-        return view('permits.management', compact('rows', 'year', 'month'));
+        return round($dailyRate * $minutes / $workMinutesPerDay, 2);
     }
 
     /**
-     * Simpan nominal potongan izin 1 karyawan untuk 1 periode bulan (upsert).
+     * Durasi menit yang dipakai perhitungan: menit izin (jika diisi),
+     * lalu durasi jam+menit potongan, terakhir selisih jam mulai/selesai.
      */
-    public function storeManagement(Request $request)
+    private function resolveDeductionMinutes(array $data, int $duration): int
     {
-        $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,id',
-            'year' => 'required|integer|min:2000|max:2100',
-            'month' => 'required|integer|min:1|max:12',
-            'amount' => 'required|numeric|min:0',
-        ]);
+        $minutes = (int) ($data['permit_minutes'] ?? 0);
 
-        \App\Models\PermitDeduction::updateOrCreate(
-            [
-                'employee_id' => $validated['employee_id'],
-                'period_year' => $validated['year'],
-                'period_month' => $validated['month'],
-            ],
-            ['amount' => $validated['amount']]
-        );
+        if ($minutes <= 0) {
+            $minutes = ((int) ($data['deduction_hours'] ?? 0)) * 60 + (int) ($data['deduction_minutes'] ?? 0);
+        }
 
-        return redirect()
-            ->route('permits.management', ['year' => $validated['year'], 'month' => $validated['month']])
-            ->with('success', 'Nominal potongan izin berhasil disimpan');
+        if ($minutes <= 0) {
+            $minutes = $duration;
+        }
+
+        return max(1, $minutes);
     }
 
     private function getPendingAttendanceIssues(Request $request)

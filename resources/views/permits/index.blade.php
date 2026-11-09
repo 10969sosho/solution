@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Manajemen Izin - ADMS')
-@section('page-title', 'Manajemen Izin')
+@section('title', 'Data Izin - ADMS')
+@section('page-title', 'Data Izin')
 @section('page-subtitle', 'Pencatatan izin karyawan & proses batch')
 
 @section('content')

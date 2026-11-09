@@ -84,4 +84,18 @@ return [
     'potongan_masuk' => [
         'divider' => 30,
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Potongan Izin Potong Gaji (berbasis MENIT, dari popup Kelola Izin)
+    |--------------------------------------------------------------------------
+    | Gaji harian  = Gaji Pokok / daily_divider
+    | Potongan     = Gaji harian * (menit izin / work_minutes_per_day)
+    | Contoh       : 120 menit (2 jam) pada hari kerja 480 menit (8 jam)
+    |                -> potongan = (Gaji / 30) * (120 / 480) = Gaji harian / 4
+    */
+    'potongan_izin' => [
+        'daily_divider' => 30,
+        'work_minutes_per_day' => 480,
+    ],
 ];

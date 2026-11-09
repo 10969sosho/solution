@@ -5,9 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Nominal potongan izin per karyawan per periode bulan.
- * Diinput manual lewat menu Manajemen Izin, ditarik ke Rekap Bulanan
- * dan komponen potongan_izin (izin_potong_gaji) saat penggajian.
+ * Nominal potongan izin per karyawan per periode bulan (data lama).
+ * Menu Manajemen Izin sudah dihapus; sejak revisi ini potongan izin dihitung
+ * otomatis dari menit izin di Absen Daily, jadi tabel ini tidak lagi dipakai
+ * perhitungan (dipertahankan agar riwayat lama tidak hilang).
  */
 class PermitDeduction extends Model
 {

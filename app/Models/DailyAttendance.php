@@ -59,7 +59,7 @@ class DailyAttendance extends Model
 
     /**
      * Keterlambatan diabaikan (tanpa potongan terlambat otomatis) jika hari itu ada izin.
-     * Potongan izin selanjutnya ditentukan manual lewat menu Manajemen Izin.
+     * Gaji harian dipotong sesuai tipe & menit izin (nominal_izin).
      */
     public function isLateIgnored(): bool
     {

@@ -19,6 +19,8 @@
 
     @php
         $emp = $payroll->employee;
+        $paymentMethod = $emp ? $emp->effectivePaymentMethod() : strtolower((string) $payroll->payment_method);
+        $hasBank = (bool) ($emp?->account_number);
     @endphp
 
     <!-- Slip Gaji Kertas Putih -->
@@ -44,18 +46,26 @@
             <div class="space-y-1.5">
                 <div class="flex"><span class="w-32 text-gray-500">Nama Karyawan:</span><span class="font-bold text-gray-900">{{ $emp->name }}</span></div>
                 <div class="flex"><span class="w-32 text-gray-500">ID Karyawan:</span><span class="font-mono font-medium">{{ $emp->employee_id }}</span></div>
-                <div class="flex"><span class="w-32 text-gray-500">Jabatan / Golongan:</span><span>{{ $emp->position ?? '-' }} / {{ $emp->golongan?->name ?? '-' }}</span></div>
+                <div class="flex"><span class="w-32 text-gray-500">Jabatan / Golongan:</span><span>{{ $emp->jabatan?->name ?? $emp->position ?? '-' }} / {{ $emp->golongan?->name ?? '-' }}</span></div>
+                <div class="flex"><span class="w-32 text-gray-500">Lokasi:</span><span>{{ $emp->lokasi?->name ?? $emp->location ?? '-' }}</span></div>
                 <div class="flex"><span class="w-32 text-gray-500">Departemen:</span><span>{{ $emp->department ?? '-' }}</span></div>
             </div>
             <div class="space-y-1.5">
                 <div class="flex">
                     <span class="w-36 text-gray-500">Metode Pembayaran:</span>
-                    <span class="font-bold uppercase {{ strtolower($payroll->payment_method) === 'cash' ? 'text-amber-700' : 'text-blue-700' }}">
-                        {{ $payroll->payment_method ?? $emp->payment_method ?? 'Transfer' }}
+                    <span class="font-bold uppercase {{ $paymentMethod === 'cash' ? 'text-amber-700' : 'text-blue-700' }}">
+                        {{ $paymentMethod === 'cash' ? 'TUNAI' : 'TRANSFER' }}
                     </span>
                 </div>
-                @if(strtolower($payroll->payment_method ?? $emp->payment_method) !== 'cash' && $emp->account_number)
-                    <div class="flex"><span class="w-36 text-gray-500">Bank &amp; No. Rek:</span><span class="font-mono font-bold">{{ $emp->bank_name ?? 'Bank' }} - {{ $emp->account_number }}</span></div>
+                <div class="flex">
+                    <span class="w-36 text-gray-500">Nomor Rekening:</span>
+                    @if($hasBank)
+                        <span class="font-mono font-bold">{{ $emp->bank_name ?? 'Bank' }} - {{ $emp->account_number }}</span>
+                    @else
+                        <span class="text-gray-500">- (tanpa rekening, bayar TUNAI)</span>
+                    @endif
+                </div>
+                @if($hasBank)
                     <div class="flex"><span class="w-36 text-gray-500">Atas Nama:</span><span>{{ $emp->account_holder ?? $emp->name }}</span></div>
                 @endif
                 <div class="flex"><span class="w-36 text-gray-500">Jatah Libur:</span><span>{{ $emp->getEffectiveLeaveQuotaForMonth($payroll->period_year, $payroll->period_month) }} hari/bln (Terpakai: {{ $payroll->total_hari_libur }} hr)</span></div>
@@ -122,7 +132,7 @@
                     @endif
                     @if($payroll->potongan_masuk > 0)
                         <div class="flex justify-between text-amber-700">
-                            <span>Potongan Masuk (Libur > Kuota {{ $payroll->hari_potong_masuk }} hr):</span>
+                            <span>Potongan Libur (Libur &gt; Kuota {{ $payroll->hari_potong_masuk }} hr):</span>
                             <span class="font-mono font-semibold">-Rp {{ number_format($payroll->potongan_masuk, 0, ',', '.') }}</span>
                         </div>
                     @endif
@@ -146,7 +156,7 @@
         <div class="bg-gray-900 text-white rounded-xl p-5 mb-8 flex items-center justify-between">
             <div>
                 <p class="text-xs uppercase tracking-wider text-gray-400 font-bold">TOTAL GAJI BERSIH (GRAND TOTAL)</p>
-                <p class="text-[10px] text-gray-400 font-mono mt-0.5">Rumus: Gaji Pokok - Denda - Izin - Pinjaman - Pot. Masuk + Bonus + Jaga Malam + Lembur</p>
+                <p class="text-[10px] text-gray-400 font-mono mt-0.5">Rumus: Gaji Pokok - Denda - Izin - Pinjaman - Pot. Libur + Bonus + Jaga Malam + Lembur</p>
             </div>
             <div class="text-right">
                 <span class="text-2xl font-black font-mono tracking-tight text-emerald-400">
