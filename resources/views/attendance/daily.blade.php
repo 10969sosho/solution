@@ -48,12 +48,12 @@
                     <option value="all" {{ ($selectedMachine === 'all' || empty($selectedMachine)) ? 'selected' : '' }}>Semua Mesin</option>
                     @foreach($devices as $dev)
                         <option value="{{ $dev->serial_number }}" {{ $selectedMachine === $dev->serial_number ? 'selected' : '' }}>
-                            {{ $dev->name }} {{ $dev->lokasi ? '('.$dev->lokasi->name.')' : '' }}
+                            {{ $dev->name }} {{ ($dev->lokasi && !str_contains(strtolower($dev->name), strtolower($dev->lokasi->name))) ? '('.$dev->lokasi->name.')' : '' }}
                         </option>
                     @endforeach
                     @foreach($otherSns as $sn)
                         <option value="{{ $sn }}" {{ $selectedMachine === $sn ? 'selected' : '' }}>
-                            SN: {{ $sn }}
+                            Mesin Belum Terdaftar (SN: {{ $sn }})
                         </option>
                     @endforeach
                 </select>

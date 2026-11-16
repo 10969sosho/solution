@@ -31,9 +31,18 @@ class DashboardController extends Controller
                     ->orWhere('id', $log->user_id)
                     ->orWhere('employee_id', 'EMP' . str_pad($log->user_id, 5, '0', STR_PAD_LEFT))
                     ->first();
-                
-                $deviceName = $log->device ? $log->device->name : ($log->machine_sn ?: 'Mesin -');
-                $locationName = ($log->device && $log->device->lokasi) ? $log->device->lokasi->name : '-';
+
+                if ($log->device) {
+                    $deviceName = $log->device->name;
+                    $locationName = ($log->device->lokasi) ? $log->device->lokasi->name : '-';
+                    $machineDisplay = ($locationName !== '-' && !str_contains(strtolower($deviceName), strtolower($locationName)))
+                        ? "{$deviceName} ({$locationName})"
+                        : $deviceName;
+                } else {
+                    $deviceName = 'Mesin Belum Terdaftar';
+                    $locationName = '-';
+                    $machineDisplay = $deviceName;
+                }
 
                 return [
                     'id' => $log->id,
@@ -44,7 +53,7 @@ class DashboardController extends Controller
                     'machine_sn' => $log->machine_sn,
                     'device_name' => $deviceName,
                     'location_name' => $locationName,
-                    'machine_display' => $locationName !== '-' ? "{$deviceName} ({$locationName})" : $deviceName,
+                    'machine_display' => $machineDisplay,
                     'status' => $log->status,
                     'status_label' => $this->getStatus($log->status),
                     'created_at' => $log->created_at ? $log->created_at->diffForHumans() : '-',

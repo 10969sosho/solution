@@ -30,7 +30,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">Serial Number (SN) <span class="text-red-500">*</span></label>
             <input type="text" name="serial_number" value="{{ old('serial_number', $device->serial_number) }}" required
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm">
-            <p class="text-xs text-gray-500 mt-1">Harus sama persis dengan SN yang dikirim mesin via ADMS.</p>
+            <p class="text-xs text-gray-500 mt-1">Nomor seri fisik mesin ADMS (contoh: NYU7250300070) agar log scan otomatis terhubung ke nama mesin kustom di atas.</p>
         </div>
 
         <div>

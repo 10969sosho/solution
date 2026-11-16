@@ -18,15 +18,18 @@ class DeviceBendoSeeder extends Seeder
             ['name' => 'Bendo']
         );
 
-        // 2. Buat Mesin 1 dan hubungkan ke lokasi Bendo
-        Device::firstOrCreate(
-            ['serial_number' => 'MESIN-01-BENDO'],
+        // 2. Hubungkan Mesin 1 (Bendo) dengan SN fisik aktif NYU7250300070
+        Device::updateOrCreate(
+            ['serial_number' => 'NYU7250300070'],
             [
-                'name' => 'Mesin 1',
+                'name' => 'Mesin 1 - Bendo',
                 'lokasi_id' => $bendo->id,
                 'is_active' => true,
                 'notes' => 'Mesin absensi utama Solution X905 - Bendo',
             ]
         );
+
+        // Hapus dummy serial number jika ada
+        Device::where('serial_number', 'MESIN-01-BENDO')->delete();
     }
 }

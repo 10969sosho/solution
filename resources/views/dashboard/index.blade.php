@@ -13,7 +13,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 mb-1">Absensi Hari Ini</p>
-                    <p class="text-3xl font-bold text-gray-800">{{ $stats['total_today'] }}</p>
+                    <p class="text-3xl font-bold text-gray-800" x-text="stats.total_today">{{ $stats['total_today'] }}</p>
                     <p class="text-xs text-gray-400 mt-2">
                         <i class="fas fa-calendar-day"></i> {{ now()->format('d M Y') }}
                     </p>
@@ -29,7 +29,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 mb-1">Mesin Aktif</p>
-                    <p class="text-3xl font-bold text-gray-800">{{ $stats['total_machines'] }}</p>
+                    <p class="text-3xl font-bold text-gray-800" x-text="stats.total_machines">{{ $stats['total_machines'] }}</p>
                     <p class="text-xs text-gray-400 mt-2">
                         <i class="fas fa-server"></i> Terhubung
                     </p>
@@ -61,9 +61,9 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 mb-1">Scan Terakhir</p>
-                    <p class="text-xl font-bold text-gray-800">{{ $stats['latest_scan']?->scan_time?->format('H:i:s') ?? '-' }}</p>
+                    <p class="text-xl font-bold text-gray-800" x-text="stats.latest_time">{{ $stats['latest_scan']?->scan_time?->format('H:i:s') ?? '-' }}</p>
                     <p class="text-xs text-gray-400 mt-2">
-                        <i class="fas fa-user"></i> {{ $stats['latest_scan'] ? ($employee = \App\Models\Employee::where('employee_id', $stats['latest_scan']->user_id)->first()) ? $employee->name : $stats['latest_scan']->user_id : '-' }}
+                        <i class="fas fa-user"></i> <span x-text="stats.latest_user">{{ $stats['latest_scan'] ? (($employee = \App\Models\Employee::where('employee_id', $stats['latest_scan']->user_id)->first()) ? $employee->name : $stats['latest_scan']->user_id) : '-' }}</span>
                     </p>
                 </div>
                 <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -155,6 +155,12 @@
                             </td>
                             <td class="px-6 py-4 text-gray-700" x-text="log.scan_time"></td>
                             <td class="px-6 py-4">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200" :title="'SN: ' + (log.machine_sn || '-')">
+                                    <i class="fas fa-fingerprint mr-1.5 text-blue-500"></i>
+                                    <span x-text="log.machine_display"></span>
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
                                 <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm" x-text="log.department"></span>
                             </td>
                             <td class="px-6 py-4">
@@ -187,6 +193,13 @@ function dashboard() {
         logs: [],
         lastUpdate: '-',
         refreshInterval: null,
+        stats: {
+            total_today: {{ (int) ($stats['total_today'] ?? 0) }},
+            total_machines: {{ (int) ($stats['total_machines'] ?? 0) }},
+            total_users: 0,
+            latest_time: '{{ $stats['latest_scan']?->scan_time?->format('H:i:s') ?? '-' }}',
+            latest_user: '{{ $stats['latest_scan'] ? (($employee = \App\Models\Employee::where('employee_id', $stats['latest_scan']->user_id)->first()) ? addslashes($employee->name) : $stats['latest_scan']->user_id) : '-' }}'
+        },
 
         async init() {
             await this.fetchData();
@@ -217,16 +230,22 @@ function dashboard() {
         updateStats() {
             const today = new Date().toLocaleDateString('en-CA');
             this.stats.total_today = this.logs.filter(log => {
-                const scanDate = log.scan_time.split(' ')[0].split('/').reverse().join('-');
-                return scanDate === today;
+                if (!log.scan_time || log.scan_time === '-') return false;
+                const parts = log.scan_time.split(' ')[0].split('/');
+                if (parts.length === 3) {
+                    const scanDate = parts[2] + "-" + parts[1] + "-" + parts[0];
+                    return scanDate === today;
+                }
+                return false;
             }).length;
             
-            this.stats.total_machines = [...new Set(this.logs.map(log => log.machine_sn))].length;
-            this.stats.total_users = [...new Set(this.logs.map(log => log.user_id))].length;
+            this.stats.total_machines = [...new Set(this.logs.map(log => log.machine_sn).filter(Boolean))].length;
+            this.stats.total_users = [...new Set(this.logs.map(log => log.user_id).filter(Boolean))].length;
             
             if (this.logs.length > 0) {
-                this.stats.latest_time = this.logs[0].scan_time.split(' ')[1];
-                this.stats.latest_user = this.logs[0].user_id;
+                const first = this.logs[0];
+                this.stats.latest_time = (first.scan_time && first.scan_time.includes(' ')) ? first.scan_time.split(' ')[1] : '-';
+                this.stats.latest_user = (first.employee_name && first.employee_name !== 'Unknown') ? first.employee_name : (first.user_id || '-');
             }
         }
     }

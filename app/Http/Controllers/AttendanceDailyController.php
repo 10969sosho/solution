@@ -158,13 +158,22 @@ class AttendanceDailyController extends Controller
 
             $machines = $empLogs->map(function ($log) {
                 $dev = $log->device;
-                $name = $dev ? $dev->name : ($log->machine_sn ?: 'Mesin -');
-                $lokasi = ($dev && $dev->lokasi) ? $dev->lokasi->name : null;
+                if ($dev) {
+                    $name = $dev->name;
+                    $lokasi = ($dev->lokasi) ? $dev->lokasi->name : null;
+                    $display = ($lokasi && !str_contains(strtolower($name), strtolower($lokasi)))
+                        ? "{$name} ({$lokasi})"
+                        : $name;
+                } else {
+                    $name = 'Mesin Belum Terdaftar';
+                    $lokasi = null;
+                    $display = $name;
+                }
                 return [
                     'sn' => $log->machine_sn,
                     'name' => $name,
                     'location' => $lokasi,
-                    'display' => $lokasi ? "{$name} ({$lokasi})" : $name,
+                    'display' => $display,
                 ];
             })->unique('sn')->values()->toArray();
 
@@ -336,9 +345,14 @@ class AttendanceDailyController extends Controller
                 $dayLogs = $monthlyLogs->get($dateStr, collect());
                 $dayMachines = $dayLogs->map(function ($log) {
                     $dev = $log->device;
-                    $name = $dev ? $dev->name : ($log->machine_sn ?: 'Mesin -');
-                    $lokasi = ($dev && $dev->lokasi) ? $dev->lokasi->name : null;
-                    return $lokasi ? "{$name} ({$lokasi})" : $name;
+                    if ($dev) {
+                        $name = $dev->name;
+                        $lokasi = ($dev->lokasi) ? $dev->lokasi->name : null;
+                        return ($lokasi && !str_contains(strtolower($name), strtolower($lokasi)))
+                            ? "{$name} ({$lokasi})"
+                            : $name;
+                    }
+                    return 'Mesin Belum Terdaftar';
                 })->unique()->implode(', ');
                 $record = DailyAttendance::where('date', $dateStr)
                     ->where('employee_id', $selectedEmployee->id)
