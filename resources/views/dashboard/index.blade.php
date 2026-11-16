@@ -110,6 +110,9 @@
                             <i class="fas fa-clock mr-2"></i>Waktu Scan
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <i class="fas fa-fingerprint mr-2"></i>Mesin & Lokasi
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             <i class="fas fa-building mr-2"></i>Departemen
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -123,7 +126,7 @@
                 <tbody class="divide-y divide-gray-200">
                     <template x-if="loading">
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center">
+                            <td colspan="6" class="px-6 py-12 text-center">
                                 <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-3"></i>
                                 <p class="text-gray-500">Memuat data...</p>
                             </td>
@@ -131,7 +134,7 @@
                     </template>
                     <template x-if="!loading && logs.length === 0">
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center">
+                            <td colspan="6" class="px-6 py-12 text-center">
                                 <i class="fas fa-inbox text-4xl text-gray-300 mb-3"></i>
                                 <p class="text-gray-500">Belum ada data absensi</p>
                             </td>

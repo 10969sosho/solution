@@ -26,8 +26,26 @@ class AttendanceLog extends Model
         return $this->belongsTo(Employee::class, 'user_id', 'employee_id');
     }
 
+    public function device()
+    {
+        return $this->belongsTo(Device::class, 'machine_sn', 'serial_number');
+    }
+
     public function getEmployeeNameAttribute()
     {
         return $this->employee ? $this->employee->name : 'Unknown';
+    }
+
+    public function getDeviceNameAttribute()
+    {
+        return $this->device ? $this->device->name : ($this->machine_sn ?: 'Unknown');
+    }
+
+    public function getLocationNameAttribute()
+    {
+        if ($this->device && $this->device->lokasi) {
+            return $this->device->lokasi->name;
+        }
+        return '-';
     }
 }

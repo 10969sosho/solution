@@ -44,7 +44,7 @@
             <!-- Navigation -->
             <nav class="flex-1 overflow-y-auto p-4 space-y-2" x-data="{
                 openGroups: {
-                    master: @js(request()->is(['employees*', 'golongans*', 'jabatans*', 'lokasis*', 'gajis*', 'potongan-terlambat*', 'bonus-libur*'])),
+                    master: @js(request()->is(['employees*', 'golongans*', 'jabatans*', 'lokasis*', 'devices*', 'gajis*', 'potongan-terlambat*', 'bonus-libur*'])),
                     attendance: @js(request()->is('attendance*')),
                     jamkerja: @js(request()->is(['schedules*', 'seasonal*', 'settings*'])),
                     reports: @js(request()->is('reports*')),
@@ -164,6 +164,9 @@
                         </a>
                         <a href="/lokasis" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('lokasis*') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-map-marker-alt w-5"></i><span class="ml-3">Lokasi</span>
+                        </a>
+                        <a href="/devices" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('devices*') ? 'bg-blue-700 shadow-lg' : '' }}">
+                            <i class="fas fa-fingerprint w-5"></i><span class="ml-3">Mesin Absensi</span>
                         </a>
                         <a href="/gajis" class="flex items-center px-4 py-2.5 pl-12 rounded-lg hover:bg-blue-700 transition-colors {{ request()->is('gajis*') ? 'bg-blue-700 shadow-lg' : '' }}">
                             <i class="fas fa-money-bill-wave w-5"></i><span class="ml-3">Gaji</span>

@@ -18,6 +18,7 @@ use App\Http\Controllers\PermitController;
 use App\Http\Controllers\PotonganTerlambatController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\LokasiController;
+use App\Http\Controllers\DeviceController;
 use Illuminate\Support\Facades\Route;
 
 // Public: login
@@ -91,6 +92,7 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('golongans', GolonganController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
     Route::resource('jabatans', JabatanController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
     Route::resource('lokasis', LokasiController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+    Route::resource('devices', DeviceController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
     Route::get('/gajis', [GajiController::class, 'index'])->name('gajis.index');
     Route::get('/gajis/{employee}/edit', [GajiController::class, 'edit'])->name('gajis.edit');
     Route::put('/gajis/{employee}', [GajiController::class, 'update'])->name('gajis.update');
