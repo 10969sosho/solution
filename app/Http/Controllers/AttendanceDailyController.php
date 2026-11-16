@@ -93,17 +93,43 @@ class AttendanceDailyController extends Controller
         );
 
         $filter = $request->input('filter', 'all');
+        $selectedMachine = $request->input('machine', 'all');
+
+        $devices = \App\Models\Device::with('lokasi')->orderBy('name')->get();
+        $registeredSns = $devices->pluck('serial_number')->filter()->toArray();
+        $otherSns = \App\Models\AttendanceLog::whereNotNull('machine_sn')
+            ->where('machine_sn', '!=', '')
+            ->whereNotIn('machine_sn', $registeredSns)
+            ->distinct()
+            ->pluck('machine_sn')
+            ->toArray();
 
         $employees = Employee::query()
             ->where('status', 'active')
             ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
             ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%'.$request->search.'%'))
-            ->with(['golongan', 'jabatan'])
+            ->with(['golongan', 'jabatan', 'lokasi'])
             ->orderBy('name')
             ->get();
 
         $permits = Permit::whereDate('permit_date', $dateStr)->get();
         $permitsByEmployee = $permits->groupBy('employee_id');
+
+        $logsOnDate = \App\Models\AttendanceLog::with('device.lokasi')
+            ->whereDate('scan_time', $dateStr)
+            ->get();
+
+        $logsByUserId = [];
+        foreach ($logsOnDate as $log) {
+            $uid = trim((string) $log->user_id);
+            $logsByUserId[$uid][] = $log;
+
+            $digits = preg_replace('/\D/', '', $uid);
+            if ($digits !== '') {
+                $cleanDigits = ltrim($digits, '0') ?: '0';
+                $logsByUserId['num_'.$cleanDigits][] = $log;
+            }
+        }
 
         // Sinkronkan atau ambil data absensi harian karyawan
         $dailyRecords = [];
@@ -118,13 +144,55 @@ class AttendanceDailyController extends Controller
                 continue;
             }
 
+            // Ambil logs untuk employee ini
+            $empLogs = collect($logsByUserId[$employee->employee_id] ?? []);
+            if ($empLogs->isEmpty() && isset($logsByUserId[(string) $employee->id])) {
+                $empLogs = collect($logsByUserId[(string) $employee->id]);
+            }
+            if ($empLogs->isEmpty()) {
+                $empDigits = ltrim(preg_replace('/\D/', '', (string) $employee->employee_id), '0');
+                if ($empDigits !== '' && isset($logsByUserId['num_'.$empDigits])) {
+                    $empLogs = collect($logsByUserId['num_'.$empDigits]);
+                }
+            }
+
+            $machines = $empLogs->map(function ($log) {
+                $dev = $log->device;
+                $name = $dev ? $dev->name : ($log->machine_sn ?: 'Mesin -');
+                $lokasi = ($dev && $dev->lokasi) ? $dev->lokasi->name : null;
+                return [
+                    'sn' => $log->machine_sn,
+                    'name' => $name,
+                    'location' => $lokasi,
+                    'display' => $lokasi ? "{$name} ({$lokasi})" : $name,
+                ];
+            })->unique('sn')->values()->toArray();
+
+            // Filter berdasarkan mesin jika dipilih
+            if ($selectedMachine !== 'all' && ! empty($selectedMachine)) {
+                $hasScanned = collect($machines)->contains(fn ($m) => $m['sn'] === $selectedMachine);
+                if (! $hasScanned) {
+                    continue;
+                }
+            }
+
             $dailyRecords[] = [
                 'employee' => $employee,
                 'attendance' => $record,
+                'machines' => $machines,
             ];
         }
 
-        return view('attendance.daily', compact('compilation', 'dailyRecords', 'dateStr', 'filter', 'permitsByEmployee'));
+        return view('attendance.daily', compact(
+            'compilation',
+            'dailyRecords',
+            'dateStr',
+            'filter',
+            'permitsByEmployee',
+            'devices',
+            'otherSns',
+            'selectedMachine'
+        ));
     }
 
     /**
@@ -250,8 +318,28 @@ class AttendanceDailyController extends Controller
             $start = Carbon::create($year, $month, 1)->startOfMonth();
             $end = $start->copy()->endOfMonth();
 
+            $monthlyLogs = \App\Models\AttendanceLog::with('device.lokasi')
+                ->where(function ($q) use ($selectedEmployee) {
+                    $q->where('user_id', $selectedEmployee->employee_id)
+                        ->orWhere('user_id', (string) $selectedEmployee->id);
+                    $clean = ltrim(preg_replace('/\D/', '', (string) $selectedEmployee->employee_id), '0');
+                    if ($clean !== '') {
+                        $q->orWhere('user_id', $clean);
+                    }
+                })
+                ->whereBetween('scan_time', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
+                ->get()
+                ->groupBy(fn ($log) => $log->scan_time->toDateString());
+
             for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
                 $dateStr = $date->toDateString();
+                $dayLogs = $monthlyLogs->get($dateStr, collect());
+                $dayMachines = $dayLogs->map(function ($log) {
+                    $dev = $log->device;
+                    $name = $dev ? $dev->name : ($log->machine_sn ?: 'Mesin -');
+                    $lokasi = ($dev && $dev->lokasi) ? $dev->lokasi->name : null;
+                    return $lokasi ? "{$name} ({$lokasi})" : $name;
+                })->unique()->implode(', ');
                 $record = DailyAttendance::where('date', $dateStr)
                     ->where('employee_id', $selectedEmployee->id)
                     ->first();
@@ -294,6 +382,7 @@ class AttendanceDailyController extends Controller
                     'late_break_in' => $lateBreakIn,
                     'keterangan' => $ket,
                     'total_libur_cumulative' => $totalLibur,
+                    'machines' => $dayMachines ?: '-',
                 ];
             }
         }

@@ -92,7 +92,7 @@ class AttendanceController extends Controller
     public function latest(Request $request)
     {
         try {
-            $query = AttendanceLog::query();
+            $query = AttendanceLog::with(['device.lokasi', 'employee']);
 
             // Filter berdasarkan tanggal
             if ($request->has('date')) {

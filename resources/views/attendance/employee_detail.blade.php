@@ -77,6 +77,7 @@
                         <th class="px-4 py-3 text-center">Pulang</th>
                         <th class="px-4 py-3 text-center">Terlambat Masuk (Mnt)</th>
                         <th class="px-4 py-3 text-center">Terlambat Msk Istirahat (Mnt)</th>
+                        <th class="px-4 py-3 text-left">Mesin Absensi</th>
                         <th class="px-4 py-3 text-center">Keterangan</th>
                         <th class="px-4 py-3 text-center">Total Hari Libur</th>
                     </tr>
@@ -104,6 +105,15 @@
                                     <span class="text-red-600 font-bold">{{ $r['late_break_in'] }} mnt</span>
                                 @else
                                     <span class="text-gray-400">0</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-left">
+                                @if($r['machines'] !== '-')
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                        <i class="fas fa-fingerprint mr-1 text-blue-500"></i> {{ $r['machines'] }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-400">-</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-center">

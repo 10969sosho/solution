@@ -40,13 +40,31 @@
                 <input type="date" name="date" value="{{ $dateStr }}" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                 <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                 <select name="filter" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
-                    <option value="all" {{ $filter === 'all' ? 'selected' : '' }}>Semua data</option>
+                    <option value="all" {{ $filter === 'all' ? 'selected' : '' }}>Semua status</option>
                     <option value="anomaly" {{ $filter === 'anomaly' ? 'selected' : '' }}>Anomali</option>
                     <option value="normal" {{ $filter === 'normal' ? 'selected' : '' }}>Normal</option>
                 </select>
-                <button type="submit" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition">
+                <select name="machine" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                    <option value="all" {{ ($selectedMachine === 'all' || empty($selectedMachine)) ? 'selected' : '' }}>Semua Mesin</option>
+                    @foreach($devices as $dev)
+                        <option value="{{ $dev->serial_number }}" {{ $selectedMachine === $dev->serial_number ? 'selected' : '' }}>
+                            {{ $dev->name }} {{ $dev->lokasi ? '('.$dev->lokasi->name.')' : '' }}
+                        </option>
+                    @endforeach
+                    @foreach($otherSns as $sn)
+                        <option value="{{ $sn }}" {{ $selectedMachine === $sn ? 'selected' : '' }}>
+                            SN: {{ $sn }}
+                        </option>
+                    @endforeach
+                </select>
+                <button type="submit" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition" title="Terapkan Filter">
                     <i class="fas fa-search"></i>
                 </button>
+                @if(request('machine') && request('machine') !== 'all')
+                    <a href="{{ route('attendance.daily', ['date' => $dateStr, 'filter' => $filter, 'search' => request('search')]) }}" class="px-2.5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs transition" title="Reset Filter Mesin">
+                        <i class="fas fa-times mr-1"></i> Reset
+                    </a>
+                @endif
             </form>
 
             <div class="border-l border-gray-300 pl-3">
@@ -93,6 +111,7 @@
                     <th class="px-3 py-3 text-center">Pulang</th>
                     <th class="px-3 py-3 text-center">Telat Masuk</th>
                     <th class="px-3 py-3 text-center">Telat Msk Istirahat</th>
+                    <th class="px-3 py-3 text-left">Mesin Absensi</th>
                     <th class="px-4 py-3 text-left">Status</th>
                     <th class="px-4 py-3 text-center">Action</th>
                 </tr>
@@ -170,6 +189,21 @@
                                 @endif
                             @else
                                 <span class="text-gray-400">0</span>
+                            @endif
+                        </td>
+
+                        <!-- Mesin Absensi -->
+                        <td class="px-3 py-3 text-left">
+                            @if(!empty($item['machines']) && count($item['machines']) > 0)
+                                <div class="flex flex-col gap-1">
+                                    @foreach($item['machines'] as $mach)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200" title="Serial Number: {{ $mach['sn'] }}">
+                                            <i class="fas fa-fingerprint mr-1 text-blue-500"></i> {{ $mach['display'] }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            @else
+                                <span class="text-gray-400 text-[11px]">-</span>
                             @endif
                         </td>
 
@@ -298,7 +332,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="px-4 py-8 text-center text-gray-400">Tidak ada data karyawan aktif.</td>
+                        <td colspan="11" class="px-4 py-8 text-center text-gray-400">Tidak ada data karyawan aktif untuk filter yang dipilih.</td>
                     </tr>
                 @endforelse
             </tbody>

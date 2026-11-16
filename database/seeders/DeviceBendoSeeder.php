@@ -15,7 +15,6 @@ class DeviceBendoSeeder extends Seeder
     {
         // 1. Pastikan lokasi Bendo ada
         $bendo = Lokasi::firstOrCreate(
-            ['code' => 'BND'],
             ['name' => 'Bendo']
         );
 

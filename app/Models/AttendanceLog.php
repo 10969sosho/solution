@@ -21,6 +21,11 @@ class AttendanceLog extends Model
         'raw_data' => 'array',
     ];
 
+    protected $appends = [
+        'device_name',
+        'location_name',
+    ];
+
     public function employee()
     {
         return $this->belongsTo(Employee::class, 'user_id', 'employee_id');
