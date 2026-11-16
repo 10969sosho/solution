@@ -128,6 +128,7 @@ class EmployeeController extends Controller
         if (! auth()->user()->isSuperAdmin()) {
             $this->ensureOperationalPosition($validated);
             unset($validated['salary'], $validated['salary_tier']);
+            $validated['uang_jaga_malam'] = 0;
         }
 
         Employee::create($validated);
@@ -191,7 +192,7 @@ class EmployeeController extends Controller
 
         if (! auth()->user()->isSuperAdmin()) {
             $this->ensureOperationalPosition($validated);
-            unset($validated['salary'], $validated['salary_tier']);
+            unset($validated['salary'], $validated['salary_tier'], $validated['uang_jaga_malam']);
         }
 
         $employee->update($validated);

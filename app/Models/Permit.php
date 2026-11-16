@@ -99,16 +99,13 @@ class Permit extends Model
         $record = DailyAttendance::where('employee_id', $employeeId)
             ->where('date', $date)
             ->first();
-        if (! $record) {
-            return;
-        }
 
         $permits = static::where('employee_id', $employeeId)
             ->whereDate('permit_date', $date)
             ->get();
 
         if ($permits->isEmpty()) {
-            if ($record->tipe_nominal_izin !== null || (float) $record->nominal_izin > 0) {
+            if ($record && ($record->tipe_nominal_izin !== null || (float) $record->nominal_izin > 0)) {
                 $record->update(['tipe_nominal_izin' => null, 'nominal_izin' => 0]);
             }
 
@@ -117,9 +114,25 @@ class Permit extends Model
 
         $summary = static::summaryFor($permits);
         $hasLibur = $permits->contains('type', self::TYPE_LIBUR);
+
+        if (! $record) {
+            $dbTipe = in_array($summary['tipe'], ['potong_gaji', 'tambah_gaji']) ? $summary['tipe'] : null;
+            DailyAttendance::create([
+                'employee_id' => $employeeId,
+                'date' => $date,
+                'keterangan' => $hasLibur ? 'libur' : 'izin',
+                'tipe_nominal_izin' => $dbTipe,
+                'nominal_izin' => $summary['nominal'],
+                'is_fixed' => false,
+            ]);
+            return;
+        }
+
+        $dbTipe = in_array($summary['tipe'], ['potong_gaji', 'tambah_gaji']) ? $summary['tipe'] : null;
+
         $record->update([
             'keterangan' => $hasLibur ? 'libur' : 'izin',
-            'tipe_nominal_izin' => $summary['tipe'],
+            'tipe_nominal_izin' => $dbTipe,
             'nominal_izin' => $summary['nominal'],
         ]);
     }

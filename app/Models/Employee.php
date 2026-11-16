@@ -243,5 +243,27 @@ class Employee extends Model
         $defaultQuota = (float) $this->getEffectiveLeaveQuota();
         return max(0.0, round($defaultQuota - $totalLiburUsed, 1));
     }
-}
 
+    /**
+     * Dapatkan seluruh kemungkinan user_id / PIN yang dipakai mesin absensi ADMS untuk karyawan ini.
+     * Mendukung: employee_id ("EMP00027", "375", "27"), id (27), digits ("27", "00027"),
+     * dan format padding ("EMP00027", "00027").
+     */
+    public function getAdmsUserIds(): array
+    {
+        $ids = [(string) $this->id];
+        if (! empty($this->employee_id)) {
+            $ids[] = (string) $this->employee_id;
+            $digits = preg_replace("/\\D/", "", (string) $this->employee_id);
+            if ($digits !== "") {
+                $ids[] = $digits;
+                $ids[] = ltrim($digits, "0") ?: "0";
+                $ids[] = str_pad($digits, 5, "0", STR_PAD_LEFT);
+            }
+        }
+        $ids[] = "EMP" . str_pad((string) $this->id, 5, "0", STR_PAD_LEFT);
+        $ids[] = str_pad((string) $this->id, 5, "0", STR_PAD_LEFT);
+
+        return array_values(array_unique(array_filter($ids)));
+    }
+}

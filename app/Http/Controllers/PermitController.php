@@ -90,9 +90,12 @@ class PermitController extends Controller
         $validated['duration_minutes'] = $validated['type'] === Permit::TYPE_LIBUR ? $duration : $minutes;
         unset($validated['permit_minutes']);
 
-        // Potong gaji dihitung dari MENIT: gaji harian * (menit / menit kerja per hari).
-        // Nominal eksplisit tetap menang (dipakai impor/laporan lama).
-        $validated['nominal'] = $validated['nominal']
+        // Potong gaji dihitung presisi dari MENIT: gaji harian * (menit / menit kerja per hari).
+        $explicitNominal = (!empty($validated['nominal']) && is_numeric($validated['nominal']) && (float) $validated['nominal'] > 0)
+            ? (float) $validated['nominal']
+            : null;
+
+        $validated['nominal'] = $explicitNominal
             ?? ($validated['type'] === Permit::TYPE_SALARY_DEDUCTION
                 ? $this->deductionAmountFromMinutes($validated['employee_id'], $minutes)
                 : 0);
@@ -156,7 +159,7 @@ class PermitController extends Controller
                 $isLibur = $row['type'] === Permit::TYPE_LIBUR;
                 $minutes = $this->resolveDeductionMinutes($row, $duration);
 
-                if (array_key_exists('nominal', $row) && $row['nominal'] !== null) {
+                if (array_key_exists('nominal', $row) && $row['nominal'] !== null && $row['nominal'] !== '' && is_numeric($row['nominal']) && (float) $row['nominal'] > 0) {
                     $nominal = (float) $row['nominal'];
                 } elseif ($row['type'] === Permit::TYPE_SALARY_DEDUCTION) {
                     $nominal = $this->deductionAmountFromMinutes($employee, $minutes);

@@ -255,20 +255,20 @@
                                             @csrf
                                             <div class="grid grid-cols-2 gap-3">
                                                 <div>
-                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Jam Masuk</label>
-                                                    <input type="time" name="check_in" value="{{ $att->check_in ? substr($att->check_in, 0, 5) : '' }}" class="w-full rounded border-gray-300 text-xs">
+                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Jam Masuk (Format 24 Jam)</label>
+                                                    <input type="text" name="check_in" value="{{ $att->check_in ? substr($att->check_in, 0, 5) : '' }}" placeholder="08:00" pattern="^([01][0-9]|2[0-3]):[0-5][0-9]$" maxlength="5" class="w-full rounded border-gray-300 text-xs font-mono time-24h" title="Format 24 jam (HH:mm, contoh: 08:00 / 14:30)">
                                                 </div>
                                                 <div>
-                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Jam Istirahat (Keluar)</label>
-                                                    <input type="time" name="break_out" value="{{ $att->break_out ? substr($att->break_out, 0, 5) : '' }}" class="w-full rounded border-gray-300 text-xs">
+                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Jam Istirahat (Format 24 Jam)</label>
+                                                    <input type="text" name="break_out" value="{{ $att->break_out ? substr($att->break_out, 0, 5) : '' }}" placeholder="12:00" pattern="^([01][0-9]|2[0-3]):[0-5][0-9]$" maxlength="5" class="w-full rounded border-gray-300 text-xs font-mono time-24h" title="Format 24 jam (HH:mm, contoh: 12:00)">
                                                 </div>
                                                 <div>
-                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Jam Masuk Istirahat</label>
-                                                    <input type="time" name="break_in" value="{{ $att->break_in ? substr($att->break_in, 0, 5) : '' }}" class="w-full rounded border-gray-300 text-xs">
+                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Jam Masuk Istirahat (Format 24 Jam)</label>
+                                                    <input type="text" name="break_in" value="{{ $att->break_in ? substr($att->break_in, 0, 5) : '' }}" placeholder="13:00" pattern="^([01][0-9]|2[0-3]):[0-5][0-9]$" maxlength="5" class="w-full rounded border-gray-300 text-xs font-mono time-24h" title="Format 24 jam (HH:mm, contoh: 13:00)">
                                                 </div>
                                                 <div>
-                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Jam Pulang</label>
-                                                    <input type="time" name="check_out" value="{{ $att->check_out ? substr($att->check_out, 0, 5) : '' }}" class="w-full rounded border-gray-300 text-xs">
+                                                    <label class="block text-xs font-medium text-gray-700 mb-1">Jam Pulang (Format 24 Jam)</label>
+                                                    <input type="text" name="check_out" value="{{ $att->check_out ? substr($att->check_out, 0, 5) : '' }}" placeholder="17:00" pattern="^([01][0-9]|2[0-3]):[0-5][0-9]$" maxlength="5" class="w-full rounded border-gray-300 text-xs font-mono time-24h" title="Format 24 jam (HH:mm, contoh: 17:00 / 20:00)">
                                                 </div>
                                             </div>
 
@@ -539,5 +539,17 @@
         modal.classList.add('hidden');
         modal.classList.remove('flex');
     }
+
+    // Auto-format 24-jam (HH:mm) untuk input waktu
+    document.addEventListener('input', function(e) {
+        if (e.target && e.target.classList.contains('time-24h')) {
+            let val = e.target.value.replace(/[^0-9]/g, '');
+            if (val.length > 4) val = val.substring(0, 4);
+            if (val.length >= 3) {
+                val = val.substring(0, 2) + ':' + val.substring(2);
+            }
+            e.target.value = val;
+        }
+    });
 </script>
 @endsection

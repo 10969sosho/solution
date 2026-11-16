@@ -30,7 +30,9 @@ class AttendanceProcessingService
      */
     public function processDay(Employee $employee, Carbon $date): array
     {
-        $logs = $employee->attendanceLogs()
+        $userIds = $employee->getAdmsUserIds();
+
+        $logs = AttendanceLog::whereIn('user_id', $userIds)
             ->whereBetween('scan_time', [
                 $date->copy()->startOfDay(),
                 $date->copy()->endOfDay(),
@@ -145,7 +147,9 @@ class AttendanceProcessingService
         $windowStart = $date->copy()->setTime(16, 0);
         $windowEnd = $date->copy()->addDay()->setTime(7, 0);
 
-        $logs = $employee->attendanceLogs()
+        $userIds = $employee->getAdmsUserIds();
+
+        $logs = AttendanceLog::whereIn('user_id', $userIds)
             ->whereBetween('scan_time', [$windowStart, $windowEnd])
             ->orderBy('scan_time')
             ->get();
@@ -377,6 +381,23 @@ class AttendanceProcessingService
         $rInBreakEnd = $date->copy()->setTimeFromTimeString($ranges['masuk_istirahat']['end']);
         $rOutStart = $date->copy()->setTimeFromTimeString($ranges['pulang']['start']);
         $rOutEnd = $date->copy()->setTimeFromTimeString($ranges['pulang']['end']);
+
+        // Adaptasi dinamis untuk Jam Kerja Musiman & Khusus
+        if (! empty($schedule['check_out_time'])) {
+            $schedOut = $date->copy()->setTimeFromTimeString($schedule['check_out_time']);
+            if ($schedOut->copy()->subMinutes(30)->lt($rOutStart)) {
+                $rOutStart = $schedOut->copy()->subMinutes(30);
+            }
+        }
+        if (! empty($schedule['check_in_time'])) {
+            $schedIn = $date->copy()->setTimeFromTimeString($schedule['check_in_time']);
+            if ($schedIn->copy()->subMinutes(60)->lt($rInStart)) {
+                $rInStart = $schedIn->copy()->subMinutes(60);
+            }
+            if ($schedIn->copy()->addMinutes(60)->gt($rInEnd)) {
+                $rInEnd = $schedIn->copy()->addMinutes(60);
+            }
+        }
 
         $checkLocks = [
             'check_in' => null,

@@ -10,6 +10,10 @@ class BonusLiburController extends Controller
 {
     public function index()
     {
+        if (! auth()->user()?->isSuperAdmin()) {
+            abort(403, 'Akses ditutup. Master Bonus Libur hanya dapat diakses oleh Owner / Super Admin.');
+        }
+
         $setting = BonusLiburSetting::current();
 
         $employees = Employee::where('status', 'active')
@@ -44,6 +48,10 @@ class BonusLiburController extends Controller
 
     public function update(Request $request)
     {
+        if (! auth()->user()?->isSuperAdmin()) {
+            abort(403, 'Akses ditutup. Master Bonus Libur hanya dapat diubah oleh Owner / Super Admin.');
+        }
+
         $validated = $request->validate([
             'batas_gaji' => 'required|numeric|min:0',
             'bonus_satu_hari' => 'required|numeric|min:0',

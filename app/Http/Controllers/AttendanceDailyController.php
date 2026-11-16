@@ -138,24 +138,30 @@ class AttendanceDailyController extends Controller
                 ->where('employee_id', $employee->id)
                 ->first();
 
-            $record ??= $this->createDailyRecord($employee, $date, $permits);
+            if (! $record) {
+                $record = $this->createDailyRecord($employee, $date, $permits);
+            } elseif (! $record->is_fixed) {
+                $record = $this->syncDailyRecord($record, $employee, $date, $permits);
+            }
 
             if (($filter === 'anomaly' && ! $record->is_anomaly) || ($filter === 'normal' && $record->is_anomaly)) {
                 continue;
             }
 
             // Ambil logs untuk employee ini
-            $empLogs = collect($logsByUserId[$employee->employee_id] ?? []);
+            $empLogs = collect();
+            foreach ($employee->getAdmsUserIds() as $uid) {
+                if (isset($logsByUserId[$uid])) {
+                    $empLogs = $empLogs->merge($logsByUserId[$uid]);
+                }
+            }
+            if ($empLogs->isEmpty() && isset($logsByUserId[$employee->employee_id])) {
+                $empLogs = collect($logsByUserId[$employee->employee_id]);
+            }
             if ($empLogs->isEmpty() && isset($logsByUserId[(string) $employee->id])) {
                 $empLogs = collect($logsByUserId[(string) $employee->id]);
             }
-            if ($empLogs->isEmpty()) {
-                $empDigits = ltrim(preg_replace('/\D/', '', (string) $employee->employee_id), '0');
-                if ($empDigits !== '' && isset($logsByUserId['num_'.$empDigits])) {
-                    $empLogs = collect($logsByUserId['num_'.$empDigits]);
-                }
-            }
-
+            $empLogs = $empLogs->unique('id');
             $machines = $empLogs->map(function ($log) {
                 $dev = $log->device;
                 if ($dev) {
@@ -328,18 +334,10 @@ class AttendanceDailyController extends Controller
             $end = $start->copy()->endOfMonth();
 
             $monthlyLogs = \App\Models\AttendanceLog::with('device.lokasi')
-                ->where(function ($q) use ($selectedEmployee) {
-                    $q->where('user_id', $selectedEmployee->employee_id)
-                        ->orWhere('user_id', (string) $selectedEmployee->id);
-                    $clean = ltrim(preg_replace('/\D/', '', (string) $selectedEmployee->employee_id), '0');
-                    if ($clean !== '') {
-                        $q->orWhere('user_id', $clean);
-                    }
-                })
+                ->whereIn('user_id', $selectedEmployee->getAdmsUserIds())
                 ->whereBetween('scan_time', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
                 ->get()
                 ->groupBy(fn ($log) => $log->scan_time->toDateString());
-
             for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
                 $dateStr = $date->toDateString();
                 $dayLogs = $monthlyLogs->get($dateStr, collect());
@@ -442,14 +440,23 @@ class AttendanceDailyController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Role & Hak Akses Admin: Menu Rekap Bulanan tidak bisa melihat sesama Admin dan Mandor
+        if (! auth()->user()->isSuperAdmin()) {
+            $employees = $employees->reject(fn ($e) => $e->isMandorOrAdmin());
+        }
+
         // Payroll must never depend on somebody opening every daily page first.
         foreach ($employees as $employee) {
             for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
                 $datePermits = $permits->where('permit_date', $date->toDateString());
-                $this->createDailyRecord($employee, $date, $datePermits);
+                $rec = DailyAttendance::where('date', $date->toDateString())->where('employee_id', $employee->id)->first();
+                if (! $rec) {
+                    $this->createDailyRecord($employee, $date, $datePermits);
+                } elseif (! $rec->is_fixed) {
+                    $this->syncDailyRecord($rec, $employee, $date, $datePermits);
+                }
             }
         }
-
         $potonganMasters = PotonganTerlambat::all();
 
         $recap = [];
@@ -593,6 +600,59 @@ class AttendanceDailyController extends Controller
         return $match ? (float) $match->amount : 0;
     }
 
+    private function syncDailyRecord(DailyAttendance $record, Employee $employee, Carbon $date, $permits): DailyAttendance
+    {
+        $hasLogs = \App\Models\AttendanceLog::whereIn('user_id', $employee->getAdmsUserIds())
+            ->whereBetween('scan_time', [
+                $date->copy()->startOfDay(),
+                $date->copy()->endOfDay(),
+            ])
+            ->exists();
+
+        if (! $hasLogs) {
+            return $record;
+        }
+
+        $dayData = $this->attendanceService->processDay($employee, $date);
+        $employeePermits = $permits->where('employee_id', $employee->id);
+        $summary = Permit::summaryFor($employeePermits);
+        $checkLocks = $dayData['check_locks'];
+
+        $edited = is_array($record->edited_fields) ? $record->edited_fields : [];
+        $updateData = [];
+
+        if (empty($edited['check_in'])) {
+            $updateData['check_in'] = $checkLocks['check_in'] ? $checkLocks['check_in']['scan_time']->format('H:i:s') : null;
+        }
+        if (empty($edited['break_out'])) {
+            $updateData['break_out'] = $checkLocks['break_out'] ? $checkLocks['break_out']['scan_time']->format('H:i:s') : null;
+        }
+        if (empty($edited['break_in'])) {
+            $updateData['break_in'] = $checkLocks['break_in'] ? $checkLocks['break_in']['scan_time']->format('H:i:s') : null;
+        }
+        if (empty($edited['check_out'])) {
+            $updateData['check_out'] = $checkLocks['check_out'] ? $checkLocks['check_out']['scan_time']->format('H:i:s') : null;
+        }
+
+        $updateData['late_check_in_minutes'] = $dayData['late_minutes'];
+        $updateData['late_break_in_minutes'] = $dayData['late_break_in_minutes'];
+        $updateData['overtime_minutes'] = $dayData['overtime_minutes'];
+        $updateData['is_anomaly'] = $dayData['is_anomaly'];
+        $updateData['anomaly_reason'] = $dayData['anomaly_reason'];
+
+        if ($employeePermits->isNotEmpty()) {
+            $updateData['keterangan'] = 'izin';
+            $updateData['nominal_izin'] = $summary['nominal'];
+            $updateData['tipe_nominal_izin'] = in_array($summary['tipe'], ['potong_gaji', 'tambah_gaji']) ? $summary['tipe'] : null;
+        } else {
+            $updateData['keterangan'] = $dayData['present'] ? 'hadir' : ($date->isWeekend() ? 'libur' : 'alpha');
+        }
+
+        $record->update($updateData);
+
+        return $record;
+    }
+
     private function createDailyRecord(Employee $employee, Carbon $date, $permits): DailyAttendance
     {
         $dateStr = $date->toDateString();
@@ -622,7 +682,7 @@ class AttendanceDailyController extends Controller
                 ? 'izin'
                 : ($dayData['present'] ? 'hadir' : ($date->isWeekend() ? 'libur' : 'alpha')),
             'nominal_izin' => $summary['nominal'],
-            'tipe_nominal_izin' => $summary['tipe'],
+            'tipe_nominal_izin' => in_array($summary['tipe'], ['potong_gaji', 'tambah_gaji']) ? $summary['tipe'] : null,
             'is_fixed' => false,
         ]);
     }

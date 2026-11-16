@@ -332,8 +332,8 @@ class RevisiManajemenIzinTest extends TestCase
         $response = $this->get(route('dashboard'));
 
         $response->assertOk();
-        $response->assertSee('Absensi dan Kompilasi');
-        $response->assertSee('List Kompilasi Jaga Malam');
+        $response->assertSee('Absen Daily');
+        $response->assertSee('Absen Jaga Malam');
         $response->assertSee('Jam Kerja</span>', false);
         $response->assertSee('Jam Kerja Khusus');
         $response->assertSee('Jam Kerja Musiman');

@@ -74,6 +74,9 @@ class PayrollController extends Controller
         $year = (int) $request->input('year', now()->year);
 
         $employees = Employee::where('status', 'active')->orderBy('name')->get();
+        if (! auth()->user()->isSuperAdmin()) {
+            $employees = $employees->reject(fn ($e) => $e->isMandorOrAdmin());
+        }
 
         $rows = $employees->map(function ($employee) use ($year) {
             $thr = $this->payrollService->calculateThr($employee, $year);
