@@ -12,8 +12,7 @@ class EmployeeController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Employee::with(['lokasi', 'golongan', 'jabatan'])
-            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $this->operationalScope($q));
+        $query = Employee::with(['lokasi', 'golongan', 'jabatan']);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -55,8 +54,7 @@ class EmployeeController extends Controller
 
     public function export(Request $request)
     {
-        $query = Employee::with(['lokasi', 'golongan', 'jabatan'])
-            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $this->operationalScope($q));
+        $query = Employee::with(['lokasi', 'golongan', 'jabatan']);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -217,6 +215,7 @@ class EmployeeController extends Controller
     private function authorizeEmployee(Employee $employee): void
     {
         if (! auth()->user()->isSuperAdmin()
+            && ! auth()->user()->isAdmin()
             && ! in_array($employee->position, config('hrms.operational_positions', []), true)) {
             abort(403, 'Anda tidak memiliki akses ke karyawan non-operasional.');
         }
@@ -224,6 +223,10 @@ class EmployeeController extends Controller
 
     private function ensureOperationalPosition(array &$validated): void
     {
+        if (auth()->user()->isAdmin()) {
+            return;
+        }
+
         $position = $validated['position'] ?? null;
 
         if (! in_array($position, config('hrms.operational_positions', []), true)) {

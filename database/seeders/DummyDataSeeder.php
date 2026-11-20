@@ -56,7 +56,7 @@ class DummyDataSeeder extends Seeder
 
         // 1. Super admin user
         User::firstOrCreate(
-            ['email' => 'admin@adms.test'],
+            ['email' => 'owner@admst.test'],
             [
                 'name' => 'Super Admin',
                 'password' => Hash::make('password'),
@@ -64,6 +64,17 @@ class DummyDataSeeder extends Seeder
             ]
         );
         $this->command->info('  Created: User super admin');
+
+        // 2. Admin operasional user
+        User::firstOrCreate(
+            ['email' => 'admin@adms.test'],
+            [
+                'name' => 'Admin Operasional',
+                'password' => Hash::make('password'),
+                'role' => 'admin',
+            ]
+        );
+        $this->command->info('  Created: User admin');
 
         // 2. Golongan (legacy 'code' column dropped on production schema)
         $golonganNames = [

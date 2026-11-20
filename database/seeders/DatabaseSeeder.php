@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
         //
         // Default akun Super Admin / Owner
         // User::firstOrCreate(
-        //     ['email' => 'admin@adms.test'],
+        //     ['email' => 'owner@admst.test'],
         //     [
         //         'name' => 'Owner',
         //         'password' => bcrypt('password'),

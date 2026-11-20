@@ -83,10 +83,10 @@ class RoleTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Karyawan Gudang');
-        $response->assertDontSee('Karyawan Mandor');
+        $response->assertSee('Karyawan Mandor');
     }
 
-    public function test_admin_operasional_cannot_edit_non_operational_employee(): void
+    public function test_admin_operasional_can_edit_employee(): void
     {
         $this->loginAsAdminOperasional();
 
@@ -97,10 +97,10 @@ class RoleTest extends TestCase
             'status' => 'active',
         ]);
 
-        $this->get(route('employees.edit', $employee))->assertForbidden();
+        $this->get(route('employees.edit', $employee))->assertOk();
     }
 
-    public function test_admin_operasional_cannot_create_non_operational_employee(): void
+    public function test_admin_operasional_can_create_employee(): void
     {
         $this->loginAsAdminOperasional();
 
@@ -109,7 +109,7 @@ class RoleTest extends TestCase
             'name' => 'Karyawan Admin',
             'position' => 'Admin',
             'status' => 'active',
-        ])->assertForbidden();
+        ])->assertRedirect(route('employees.index'));
     }
 
     public function test_admin_operasional_cannot_set_salary(): void

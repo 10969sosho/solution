@@ -14,7 +14,7 @@ abstract class TestCase extends BaseTestCase
     {
         $user = User::create([
             'name' => 'Owner',
-            'email' => 'owner@adms.test',
+            'email' => 'owner@admst.test',
             'password' => bcrypt('password'),
             'role' => 'super_admin',
         ]);
@@ -28,9 +28,9 @@ abstract class TestCase extends BaseTestCase
     {
         $user = User::create([
             'name' => 'Admin Operasional',
-            'email' => 'ops@adms.test',
+            'email' => 'admin@adms.test',
             'password' => bcrypt('password'),
-            'role' => 'admin_operasional',
+            'role' => 'admin',
         ]);
 
         $this->actingAs($user);
