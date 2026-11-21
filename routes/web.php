@@ -43,6 +43,8 @@ Route::prefix('api')->middleware(['api.auth', 'throttle:100,1'])->group(function
 // Autentikasi: seluruh halaman admin
 Route::middleware(['auth'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    // Alias: '/dashboard' juga membuka dashboard utama (tanpa nama agar route('dashboard') tetap '/').
+    Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/dashboard/data', [DashboardController::class, 'data'])->name('dashboard.data');
 
     Route::get('/employees-export', [EmployeeController::class, 'export'])->name('employees.export');

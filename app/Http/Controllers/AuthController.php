@@ -24,7 +24,13 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
-            $request->session()->regenerate();
+            $session = $request->session();
+            $session->regenerate();
+
+            // URL ajax (mis. /dashboard/data) tersimpan saat session expired saat fetch — jangan pakai sebagai intended.
+            if (str_contains((string) $session->get('url.intended', ''), '/dashboard/data')) {
+                $session->forget('url.intended');
+            }
 
             return redirect()->intended(route('dashboard'));
         }
