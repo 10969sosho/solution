@@ -24,7 +24,7 @@ class ReportController extends Controller
 
         $employees = Employee::query()
             ->where('status', 'active')
-            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
+            ->when(! auth()->user()->isSuperAdmin() && ! auth()->user()->isAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
             ->when($location, fn ($q) => $q->where('location', $location))
             ->when($position, fn ($q) => $q->where('position', $position))
             ->orderBy('name')
@@ -36,7 +36,7 @@ class ReportController extends Controller
         if ($employeeId) {
             $selectedEmployee = $employees->firstWhere('employee_id', $employeeId)
                 ?? Employee::where('employee_id', $employeeId)->first();
-            if ($selectedEmployee && ! auth()->user()->isSuperAdmin()
+            if ($selectedEmployee && ! auth()->user()->isSuperAdmin() && ! auth()->user()->isAdmin()
                 && ! in_array($selectedEmployee->position, config('hrms.operational_positions', []), true)) {
                 abort(403, 'Anda tidak memiliki akses ke laporan karyawan non-operasional.');
             }
@@ -68,7 +68,7 @@ class ReportController extends Controller
 
         $employees = Employee::query()
             ->where('status', 'active')
-            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
+            ->when(! auth()->user()->isSuperAdmin() && ! auth()->user()->isAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
             ->when($location, fn ($q) => $q->where('location', $location))
             ->when($position, fn ($q) => $q->where('position', $position))
             ->orderBy('name')
@@ -108,7 +108,7 @@ class ReportController extends Controller
 
         $query = Employee::query()
             ->where('status', 'active')
-            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
+            ->when(! auth()->user()->isSuperAdmin() && ! auth()->user()->isAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
             ->when($location, fn ($q) => $q->where('location', $location))
             ->when($position, fn ($q) => $q->where('position', $position))
             ->when($employeeId, fn ($q) => $q->where('id', $employeeId))
@@ -209,7 +209,7 @@ class ReportController extends Controller
 
         $query = Employee::query()
             ->where('status', 'active')
-            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
+            ->when(! auth()->user()->isSuperAdmin() && ! auth()->user()->isAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
             ->when($location, fn ($q) => $q->where('location', $location))
             ->when($position, fn ($q) => $q->where('position', $position))
             ->when($employeeId, fn ($q) => $q->where('id', $employeeId))
@@ -319,7 +319,7 @@ class ReportController extends Controller
 
         $query = Employee::query()
             ->where('status', 'active')
-            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
+            ->when(! auth()->user()->isSuperAdmin() && ! auth()->user()->isAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
             ->when($location, fn ($q) => $q->where('location', $location))
             ->when($position, fn ($q) => $q->where('position', $position))
             ->orderBy('name');

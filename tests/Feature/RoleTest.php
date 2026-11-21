@@ -130,7 +130,7 @@ class RoleTest extends TestCase
         $this->assertNull($employee->salary_tier);
     }
 
-    public function test_admin_operasional_reports_are_operational_only(): void
+    public function test_admin_operasional_reports_see_all_employees(): void
     {
         $this->loginAsAdminOperasional();
 
@@ -152,6 +152,6 @@ class RoleTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Karyawan Gudang');
-        $response->assertDontSee('Karyawan Mandor');
+        $response->assertSee('Karyawan Mandor');
     }
 }

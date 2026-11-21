@@ -106,7 +106,7 @@ class AttendanceDailyController extends Controller
 
         $employees = Employee::query()
             ->where('status', 'active')
-            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
+            ->when(! auth()->user()->isSuperAdmin() && ! auth()->user()->isAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
             ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%'.$request->search.'%'))
             ->with(['golongan', 'jabatan', 'lokasi'])
             ->orderBy('name')
@@ -317,7 +317,7 @@ class AttendanceDailyController extends Controller
 
         $employees = Employee::query()
             ->where('status', 'active')
-            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
+            ->when(! auth()->user()->isSuperAdmin() && ! auth()->user()->isAdmin(), fn ($q) => $q->whereIn('position', config('hrms.operational_positions', [])))
             ->when($search, fn ($q) => $q->where('name', 'like', '%'.$search.'%'))
             ->orderBy('name')
             ->get();
